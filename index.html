@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Orator Trainer — Demo</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071029 0%, #071827 60%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,'Helvetica Neue',Arial}
+    .wrap{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:18px;color:white}
+    header h1{margin:0;font-size:20px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+    .card{background:var(--card);border-radius:12px;padding:14px;color:#e6eef8;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    button{background:var(--accent);border:none;color:#042022;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .controls{display:flex;gap:8px;margin-top:8px}
+    #transcript{min-height:120px;white-space:pre-wrap;background:var(--glass);padding:10px;border-radius:8px;color:#e6eef8}
+    .metrics{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+    .metric{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:8px;border-radius:8px;min-width:120px}
+    .history-list{max-height:260px;overflow:auto;margin-top:10px}
+    table{width:100%;border-collapse:collapse;color:#cfe8ff}
+    td,th{padding:6px;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:13px}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    .suggestion{background:rgba(6,182,212,0.08);color:var(--accent);padding:8px;border-radius:8px;margin-top:10px}
+    .small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden><rect width="24" height="24" rx="6" fill="#04303a"/><path d="M6 15s2-2 6-2 6 2 6 2" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>
+        <h1>Orator Trainer — Classroom Demo</h1>
+        <div class="small">Record, transcribe (browser), metric feedback, history — no external APIs.</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main class="card">
+        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+          <div>
+            <strong>Live Practice</strong>
+            <div class="small">Pick a prompt, press Start, speak naturally.</div>
+          </div>
+          <div class="small" id="status">● idle</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <select id="prompt" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#e6eef8;border:1px solid rgba(255,255,255,0.04)">
+            <option>60s: Personal intro</option>
+            <option>45s: Explain your favourite concept</option>
+            <option>30s: Pitch a product</option>
+            <option>60s: Tell a brief story</option>
+            <option>30s: Explain like I'm 10</option>
+          </select>
+        </div>
+
+        <div class="controls">
+          <button id="startBtn">Start</button>
+          <button id="stopBtn" class="secondary" disabled>Stop</button>
+          <button id="saveBtn" class="secondary" disabled>Save session</button>
+          <button id="exportBtn" class="secondary">Export CSV</button>
+        </div>
+
+        <div id="transcript" contenteditable="false" aria-live="polite">(transcript appears here)</div>
+
+        <div class="metrics" id="metrics"></div>
+
+        <div class="suggestion" id="suggestion" style="display:none"></div>
+      </main>
+
+      <aside class="card">
+        <strong>History</strong>
+        <div class="history-list" id="history"></div>
+        <div style="margin-top:10px">
+          <strong>Session controls</strong>
+          <div class="small">You can replay transcripts or clear history.</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="clearHistory" class="secondary">Clear</button>
+            <button id="demoFill" class="secondary">Insert demo speech</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="card small">Notes: this demo uses your browser's speech recognition when available (Chrome/Edge). If not available, you can paste a transcript manually into the transcript box and click "Save session".</footer>
+  </div>
+
+  <script>
+  // == Simple Orator Trainer Demo (single-file) ==
+  // Features:
+  // - Uses browser SpeechRecognition if available for live transcription
+  // - Calculates WPM, filler words, pause count, longest pause
+  // - Simple pitch range estimation via WebAudio (voiced frames)
+  // - Save sessions to localStorage and export CSV
+
+  // ----- Utilities -----
+  const $ = id => document.getElementById(id);
+
+  // Filler words list
+  const FILLERS = ['um','uh','like','you know','actually','basically','right','so','i mean','kind of','sort of'];
+
+  // ----- State -----
+  let recognition = null;
+  let recognizing = false;
+  let finalTranscript = '';
+  let startTime = null;
+  let speechStart = null;
+  let audioContext = null;
+  let mediaStream = null;
+  let lastSpeechTime = 0;
+  let pauses = [];
+  let pitchSamples = [];
+
+  // ----- UI refs -----
+  const startBtn = $('startBtn');
+  const stopBtn = $('stopBtn');
+  const saveBtn = $('saveBtn');
+  const exportBtn = $('exportBtn');
+  const transcriptEl = $('transcript');
+  const statusEl = $('status');
+  const metricsEl = $('metrics');
+  const suggestionEl = $('suggestion');
+  const historyEl = $('history');
+  const promptEl = $('prompt');
+
+  // ----- Speech recognition setup -----
+  function supportsSpeechRecognition(){
+    return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  function startRecognition(){
+    if (!supportsSpeechRecognition()){
+      alert('SpeechRecognition not available in this browser. You can still paste a transcript manually and save.');
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.lang = 'en-US';
+
+    finalTranscript = '';
+    transcriptEl.textContent = '';
+
+    recognition.onstart = () => {
+      recognizing = true; statusEl.textContent = '● listening';
+      startTime = performance.now(); speechStart = null; pauses = []; lastSpeechTime = performance.now(); pitchSamples = [];
+      stopBtn.disabled = false; startBtn.disabled = true; saveBtn.disabled = true;
+    };
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i=event.resultIndex;i<event.results.length;i++){
+        const res = event.results[i];
+        if (res.isFinal){ finalTranscript += res[0].transcript + ' '; speechDetected(); }
+        else interim += res[0].transcript;
+      }
+      transcriptEl.textContent = (finalTranscript + '\n' + interim).trim();
+      computeLiveMetrics();
+    };
+
+    recognition.onerror = (e) => { console.warn('recognition error', e); };
+    recognition.onend = () => { recognizing = false; statusEl.textContent = '● idle'; stopProcessingAudio(); stopBtn.disabled = true; startBtn.disabled = false; saveBtn.disabled = finalTranscript.trim().length===0; };
+
+    recognition.start();
+    startAudioCaptureForPitch();
+  }
+
+  function stopRecognition(){
+    if (recognition){ recognition.stop(); recognition = null; }
+  }
+
+  // ----- Audio capture for pause/pitch analysis -----
+  async function startAudioCaptureForPitch(){
+    try{
+      mediaStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      const analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
+      source.connect(analyser);
+      const data = new Float32Array(analyser.fftSize);
+
+      // sample loop
+      function sample(){
+        analyser.getFloatTimeDomainData(data);
+        const rms = Math.sqrt(data.reduce((s,v)=>s+v*v,0)/data.length);
+        const now = performance.now();
+        // detect silence vs speech via RMS threshold
+        if (rms > 0.01){ // voiced
+          lastSpeechTime = now;
+          // pitch estimate via auto-correlation
+          const pitch = autoCorrelate(data, audioContext.sampleRate);
+          if (pitch && pitch>50 && pitch<600) pitchSamples.push(pitch);
+        } else {
+          // if silence lasted > 400ms mark a pause
+          const silenceLength = now - lastSpeechTime;
+          // only add a pause when crossing threshold
+          if (silenceLength>400 && (pauses.length===0 || (now - pauses[pauses.length-1].end) > 300)){
+            pauses.push({start:lastSpeechTime, end:now});
+          }
+        }
+        if (recognizing) requestAnimationFrame(sample);
+      }
+      requestAnimationFrame(sample);
+    }catch(err){ console.warn('audio capture failed', err); }
+  }
+
+  function stopProcessingAudio(){
+    if (mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; }
+    if (audioContext){ audioContext.close(); audioContext=null; }
+  }
+
+  // Auto-correlation pitch finder (classic)
+  function autoCorrelate(buf, sampleRate){
+    // from many JS pitch examples, returns fundamental frequency or -1
+    const SIZE = buf.length;
+    let rms = 0; for (let i=0;i<SIZE;i++){ const val = buf[i]; rms+=val*val; } rms = Math.sqrt(rms/SIZE);
+    if (rms<0.01) return null;
+    let r1=0, r2=SIZE-1, th=0.2;
+    for (let i=0;i<SIZE/2;i++) if (Math.abs(buf[i])<th){ r1=i; break; }
+    for (let i=1;i<SIZE/2;i++) if (Math.abs(buf[SIZE-i])<th){ r2=SIZE-i; break; }
+    buf = buf.slice(r1,r2);
+    const newSize = buf.length;
+    const c = new Array(newSize).fill(0);
+    for (let i=0;i<newSize;i++) for (let j=0;j<newSize-i;j++) c[i]+=buf[j]*buf[j+i];
+    let d=0; while(c[d]>c[d+1]) d++;
+    let maxval=-1, maxpos=-1; for (let i=d;i<newSize;i++){ if (c[i]>maxval){ maxval=c[i]; maxpos=i;} }
+    if (maxpos===-1) return null;
+    const T0 = maxpos;
+    return sampleRate / T0;
+  }
+
+  // ----- Metric calculations -----
+  function wordsCount(txt){ if(!txt) return 0; return txt.trim().split(/\s+/).filter(Boolean).length; }
+
+  function computeMetricsFromText(txt, speakingMs){
+    const words = wordsCount(txt);
+    const wpm = speakingMs>0 ? Math.round(words / (speakingMs/60000)) : 0;
+    const lower = txt.toLowerCase();
+    let fillerCount = 0; FILLERS.forEach(f => { const regex = new RegExp('\\b'+escapeRegExp(f)+'\\b','g'); const m = lower.match(regex); if (m) fillerCount += m.length; });
+    const fillerPerMin = speakingMs>0 ? (fillerCount/(speakingMs/60000)).toFixed(1) : 0;
+    const pauseCount = pauses.length;
+    const longestPause = pauses.reduce((m,p)=>Math.max(m, p.end-p.start),0);
+    const uniqueWords = new Set(txt.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean));
+    const ttr = words>0 ? (uniqueWords.size/words).toFixed(2) : 0;
+    const pitchRange = pitchSamples.length? (Math.max(...pitchSamples)-Math.min(...pitchSamples)).toFixed(0) : 0;
+    return {words,wpm,fillerCount,fillerPerMin,pauseCount,longestPause,ttr,pitchRange};
+  }
+
+  function computeLiveMetrics(){
+    const txt = transcriptEl.textContent || '';
+    const speakingMs = Math.max(1, performance.now() - (startTime || performance.now()));
+    const m = computeMetricsFromText(txt, speakingMs);
+    renderMetrics(m);
+  }
+
+  function renderMetrics(m){
+    metricsEl.innerHTML = '';
+    const blocks = [
+      ['WPM', m.wpm], ['Words', m.words], ['Fillers/min', m.fillerPerMin], ['Pauses', m.pauseCount], ['Longest pause (ms)', Math.round(m.longestPause)], ['TTR', m.ttr], ['Pitch range (Hz)', m.pitchRange]
+    ];
+    blocks.forEach(b=>{ const d = document.createElement('div'); d.className='metric'; d.innerHTML = `<div style="font-weight:700">${b[1]}</div><div class="small">${b[0]}</div>`; metricsEl.appendChild(d); });
+    offerSuggestion(m);
+  }
+
+  function offerSuggestion(m){
+    suggestionEl.style.display = 'block';
+    let text = '';
+    if (m.wpm>190) text = 'You speak fast — try adding a 300–500ms pause at commas and sentence breaks.';
+    else if (m.wpm<110) text = 'You speak slowly — try to increase tempo slightly to keep energy up.';
+    else text = 'Pace is in a good band. Work on reducing filler words for clarity.';
+    if (m.fillerPerMin>3) text = 'Too many filler words. Pause briefly instead of using fillers.';
+    suggestionEl.textContent = text;
+  }
+
+  // escape regex helper
+  function escapeRegExp(string){ return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  // ----- Session saving -----
+  function saveSession(){
+    const now = new Date().toISOString();
+    const txt = transcriptEl.textContent.trim();
+    if (!txt){ alert('No transcript to save.'); return; }
+    const speakingMs = Math.max(1, performance.now() - (startTime || performance.now()));
+    const m = computeMetricsFromText(txt, speakingMs);
+    const session = {id: now, prompt: promptEl.value, transcript: txt, metrics: m, date: now};
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr.unshift(session); localStorage.setItem('orator_history', JSON.stringify(arr));
+    refreshHistory(); saveBtn.disabled=true;
+  }
+
+  function refreshHistory(){
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]');
+    if (!arr.length) { historyEl.innerHTML = '<div class="small">No sessions yet.</div>'; return; }
+    const rows = arr.map(s=>`<div style="padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,0.02)"><div style="display:flex;justify-content:space-between"><div><strong>${s.prompt}</strong><div class="small">${new Date(s.date).toLocaleString()}</div></div><div style="text-align:right"><div class="small">WPM: ${s.metrics.wpm}</div><div style="margin-top:6px"><button class="smallBtn" data-id="${s.id}" onclick="replaySession('${s.id}')">Replay</button> <button class="smallBtn" data-id="${s.id}" onclick="deleteSession('${s.id}')">Delete</button></div></div></div><div style="margin-top:6px;font-size:13px">${escapeHtmlPreview(s.transcript)}</div></div>`).join('');
+    historyEl.innerHTML = rows;
+  }
+
+  window.replaySession = function(id){
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); const s = arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); }
+  window.deleteSession = function(id){ let arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); }
+
+  function escapeHtmlPreview(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+  // Export CSV
+  function exportCSV(){
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); if (!arr.length){ alert('No sessions to export.'); return; }
+    const header = ['date','prompt','words','wpm','fillers','pauses','longestPause','ttr','pitchRange','transcript'];
+    const lines = [header.join(',')];
+    arr.forEach(s=>{ const row=[s.date,`"${s.prompt.replace(/"/g,'""')}"`,s.metrics.words,s.metrics.wpm,s.metrics.fillerCount,s.metrics.pauseCount,Math.round(s.metrics.longestPause),s.metrics.ttr,s.metrics.pitchRange,`"${s.transcript.replace(/"/g,'""') }"`]; lines.push(row.join(',')); });
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='orator_history.csv'; a.click(); URL.revokeObjectURL(url);
+  }
+
+  // Helpers for UI small buttons
+  document.addEventListener('click', e=>{
+    if (e.target.matches('.smallBtn')){
+      const id = e.target.getAttribute('data-id'); if (e.target.textContent.trim()==='Replay') replaySession(id); else deleteSession(id);
+    }
+  });
+
+  // Demo helper: insert a fake speech
+  $('demoFill').addEventListener('click', ()=>{
+    const sample = 'Hello, my name is Alex. I work on simple products that help people learn. In this short pitch I will show why our tool helps learners stay excited. Thank you.';
+    transcriptEl.textContent = sample; startTime = performance.now() - 35000; computeLiveMetrics(); saveBtn.disabled=false; });
+
+  // Buttons wiring
+  startBtn.addEventListener('click', ()=>{ startRecognition(); startTime = performance.now(); });
+  stopBtn.addEventListener('click', ()=>{ stopRecognition(); });
+  saveBtn.addEventListener('click', ()=>{ saveSession(); });
+  exportBtn.addEventListener('click', ()=>{ exportCSV(); });
+  $('clearHistory').addEventListener('click', ()=>{ if (confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); } });
+
+  // allow manual edit in case speech API missing
+  transcriptEl.addEventListener('input', ()=>{ saveBtn.disabled = transcriptEl.textContent.trim().length===0; computeLiveMetrics(); });
+
+  // initial load
+  refreshHistory();
+
+  // small helper to ensure the demo is usable when SpeechRecognition is not provided
+  if (!supportsSpeechRecognition()){
+    statusEl.textContent = '● speech API not available — paste transcript manually'; startBtn.disabled = true; stopBtn.disabled = true;
+  }
+
+  // escape html in history display
+  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  </script>
+</body>
+</html>
