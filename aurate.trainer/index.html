@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orator Trainer Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🎤 Orator Trainer</h1>
+
+  <!-- 1️⃣ Record Section -->
+  <section id="record">
+    <h2>Record</h2>
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+  </section>
+
+  <!-- 2️⃣ Transcript Section -->
+  <section id="transcript">
+    <h2>Transcript</h2>
+    <p id="transcriptText">Your speech text will appear here...</p>
+  </section>
+
+  <!-- 3️⃣ Metrics Section -->
+  <section id="metrics">
+    <h2>Metrics</h2>
+    <ul>
+      <li>Words per minute: <span id="wpm">0</span></li>
+      <li>Filler words: <span id="fillers">0</span></li>
+      <li>Pauses: <span id="pauses">0</span></li>
+    </ul>
+  </section>
+
+  <!-- 4️⃣ History Section -->
+  <section id="history">
+    <h2>History</h2>
+    <ul id="sessionHistory">
+      <li>No sessions yet.</li>
+    </ul>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
