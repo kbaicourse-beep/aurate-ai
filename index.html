@@ -3,233 +3,296 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Orator Trainer — Lovable Prototype</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <title>Aurate — Orator Trainer (Demo)</title>
   <style>
-    :root{
-      --bg:#0b1320; --panel:#0f1724; --muted:#94a3b8; --accent:#06b6d4; --accent-2:#7c3aed; --glass:rgba(255,255,255,0.03);
-      --success:#10b981; --danger:#ef4444; --card-radius:14px;
-      font-synthesis: none;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,#031226 0%, #071827 70%);font-family:Inter,system-ui,Segoe UI,Roboto; color:#e6eef8}
-    .wrap{max-width:1100px;margin:28px auto;padding:22px}
-
-    header{display:flex;align-items:center;gap:16px}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#042022;font-weight:700}
-    h1{margin:0;font-size:20px}
-    .sub{color:var(--muted);font-size:13px}
-
-    .layout{display:grid;grid-template-columns:1fr 340px;gap:18px;margin-top:18px}
-    .panel{background:var(--panel);border-radius:var(--card-radius);padding:16px;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
-
-    /* left */
-    .live-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .controls{display:flex;gap:8px;margin-top:12px}
-    button{background:var(--accent);border:none;color:#042022;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
-    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted);font-weight:600}
-    .btn-danger{background:var(--danger);color:white}
-
-    .prompt{width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit}
-
-    .main-row{display:flex;gap:16px;margin-top:14px}
-    .rec-area{flex:1}
-    #transcript{min-height:180px;background:var(--glass);padding:12px;border-radius:10px;white-space:pre-wrap;outline:none}
-
-    .visuals{width:260px}
-    .meter{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:12px;border-radius:10px}
-    .metric{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
-    .metric:last-child{border-bottom:none}
-    .metric .label{color:var(--muted);font-size:13px}
-    .big{font-weight:800;font-size:18px}
-
-    .progress-ring{width:92px;height:92px;margin:auto}
-
-    .history-list{max-height:380px;overflow:auto;margin-top:8px}
-    .history-item{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:8px}
-
-    .tips{margin-top:12px;padding:10px;border-radius:8px;background:linear-gradient(90deg, rgba(6,182,212,0.06), rgba(124,58,237,0.03));color:var(--accent)}
-
-    footer{color:var(--muted);font-size:13px;margin-top:18px;text-align:center}
-
-    /* small */
-    .small{font-size:13px;color:var(--muted)}
-
-    /* animations */
-    .pulse{animation:pulse 1.6s infinite}
-    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
-
-    /* responsive */
-    @media (max-width:980px){ .layout{grid-template-columns:1fr} .visuals{order:2} }
+    :root{--bg:#0f1724;--card:#0b1220;--teal:#06b6d4;--gold:#d7b36a;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071029 0%, #071827 60%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,'Helvetica Neue',Arial;color:#e6eef8}
+    .wrap{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:18px}
+    .brand { display:flex; gap:12px; align-items:center; }
+    .logo-img{width:72px;height:48px;object-fit:contain;border-radius:8px}
+    header h1{margin:0;font-size:20px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+    .card{background:var(--card);border-radius:12px;padding:14px;color:#e6eef8;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    button{background:var(--teal);border:none;color:#042022;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .controls{display:flex;gap:8px;margin-top:8px}
+    #transcript{min-height:120px;white-space:pre-wrap;background:var(--glass);padding:10px;border-radius:8px;color:#e6eef8}
+    .metrics{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+    .metric{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:8px;border-radius:8px;min-width:120px}
+    .history-list{max-height:260px;overflow:auto;margin-top:10px}
+    table{width:100%;border-collapse:collapse;color:#cfe8ff}
+    td,th{padding:6px;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:13px}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    .suggestion{background:rgba(6,182,212,0.08);color:var(--teal);padding:8px;border-radius:8px;margin-top:10px}
+    .small{font-size:12px;color:var(--muted)}
+    .smallBtn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px 8px;border-radius:6px;font-size:12px}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div class="brand">
-        <div class="logo">OT</div>
+        <!-- Put your logo file named logo.png in the same folder as this HTML -->
+        <img src="logo.png" alt="Aurate logo" class="logo-img" />
         <div>
-          <h1>Orator Trainer — Lovable Prototype</h1>
-          <div class="sub">Interactive, polished, and fully client-side. Works in Chrome/Edge.</div>
+          <h1>Aurate</h1>
+          <div class="small">speak better every time — Record, transcribe (browser), get coaching feedback, and track progress.</div>
         </div>
       </div>
     </header>
 
-    <div class="layout">
-      <section class="panel">
-        <div class="live-top">
+    <div class="grid">
+      <main class="card">
+        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
           <div>
-            <div class="small">Live Practice</div>
-            <strong style="font-size:16px">Pick a prompt and press Start</strong>
+            <strong>Live Practice</strong>
+            <div class="small">Pick a prompt, press Start, speak naturally.</div>
           </div>
           <div class="small" id="status">● idle</div>
         </div>
 
-        <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
-          <select id="prompt" class="prompt">
-            <option data-seconds="60">60s — Personal intro</option>
-            <option data-seconds="45">45s — Explain a concept</option>
-            <option data-seconds="30">30s — Product pitch</option>
-            <option data-seconds="60">60s — Storytelling</option>
-            <option data-seconds="30">30s — Explain like I'm 10</option>
+        <div style="margin-top:12px">
+          <select id="prompt" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#e6eef8;border:1px solid rgba(255,255,255,0.04)">
+            <option>60s: Personal intro</option>
+            <option>45s: Explain your favourite concept</option>
+            <option>30s: Pitch a product</option>
+            <option>60s: Tell a brief story</option>
+            <option>30s: Explain like I'm 10</option>
           </select>
-
-          <div style="min-width:120px;text-align:right">
-            <div class="small">Time</div>
-            <div id="timeLeft" style="font-weight:800">00:00</div>
-          </div>
         </div>
 
         <div class="controls">
           <button id="startBtn">Start</button>
-          <button id="stopBtn" class="btn-ghost" disabled>Stop</button>
-          <button id="saveBtn" class="btn-ghost" disabled>Save</button>
-          <button id="exportBtn" class="btn-ghost">Export CSV</button>
+          <button id="stopBtn" class="secondary" disabled>Stop</button>
+          <button id="saveBtn" class="secondary" disabled>Save session</button>
+          <button id="exportBtn" class="secondary">Export CSV</button>
         </div>
 
-        <div class="main-row">
-          <div class="rec-area">
-            <div id="transcript" contenteditable="true" aria-live="polite">(transcript will appear here — you can also paste text)</div>
-            <div class="small" style="margin-top:8px">Tip: click the transcript to edit errors, then Save.</div>
-          </div>
+        <div id="transcript" contenteditable="false" aria-live="polite">(transcript appears here)</div>
 
-          <aside class="visuals">
-            <div class="meter">
-              <div style="text-align:center;margin-bottom:8px"><strong>Live Metrics</strong></div>
-              <div class="metric"><div class="label">WPM</div><div class="big" id="m-wpm">0</div></div>
-              <div class="metric"><div class="label">Fillers / min</div><div class="big" id="m-fillers">0</div></div>
-              <div class="metric"><div class="label">Pauses</div><div class="big" id="m-pauses">0</div></div>
-              <div class="metric"><div class="label">Pitch range (Hz)</div><div class="big" id="m-pitch">0</div></div>
-            </div>
+        <div class="metrics" id="metrics"></div>
 
-            <div style="height:12px"></div>
-            <div class="tips" id="suggestion" style="display:none"></div>
-          </aside>
-        </div>
+        <div class="suggestion" id="suggestion" style="display:none"></div>
+      </main>
 
-        <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
-          <button id="demoFill" class="btn-ghost">Insert Demo Speech</button>
-          <button id="clearHistory2" class="btn-ghost">Clear Stored Data</button>
-          <div style="flex:1"></div>
-          <div class="small">Local only — stored in your browser.</div>
-        </div>
-      </section>
-
-      <aside class="panel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong>History</strong>
-          <div class="small">Saved runs</div>
-        </div>
+      <aside class="card">
+        <strong>History</strong>
         <div class="history-list" id="history"></div>
+        <div style="margin-top:10px">
+          <strong>Session controls</strong>
+          <div class="small">You can replay transcripts or clear history.</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="clearHistory" class="secondary">Clear</button>
+            <button id="demoFill" class="secondary">Insert demo speech</button>
+          </div>
+        </div>
       </aside>
     </div>
 
-    <footer>Built for classroom demos • Works offline • Chrome/Edge recommended</footer>
+    <footer class="card small">Notes: this demo uses your browser's speech recognition when available (Chrome/Edge). If not available, you can paste a transcript manually into the transcript box and click "Save session".</footer>
   </div>
 
   <script>
-  // Lovable UI prototype: improved visuals + interactive elements
+  // == Aurate: in-browser demo ==
   const $ = id => document.getElementById(id);
   const FILLERS = ['um','uh','like','you know','actually','basically','right','so','i mean','kind of','sort of'];
 
-  let recognition=null, recognizing=false, finalTranscript='';
-  let startTime=0, totalMs=0, timerRAF=null;
-  let mediaStream=null, audioContext=null, pauses=[], lastSpeechTime=0, pitchSamples=[];
+  let recognition = null, recognizing=false, finalTranscript='', startTime=null, audioContext=null, mediaStream=null, lastSpeechTime=0, pauses=[], pitchSamples=[];
 
-  const startBtn=$('startBtn'), stopBtn=$('stopBtn'), saveBtn=$('saveBtn'), exportBtn=$('exportBtn');
-  const transcriptEl=$('transcript'), statusEl=$('status'), timeLeftEl=$('timeLeft');
-  const mWpm=$('m-wpm'), mFillers=$('m-fillers'), mPauses=$('m-pauses'), mPitch=$('m-pitch');
-  const suggestionEl=$('suggestion'), historyEl=$('history');
+  const startBtn = $('startBtn'), stopBtn = $('stopBtn'), saveBtn = $('saveBtn'), exportBtn = $('exportBtn');
+  const transcriptEl = $('transcript'), statusEl = $('status'), metricsEl = $('metrics'), suggestionEl = $('suggestion'), historyEl = $('history'), promptEl = $('prompt');
 
-  function supportsSR(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+  function supportsSpeechRecognition(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
 
-  function formatMs(ms){ const s=Math.ceil(ms/1000); const mm=Math.floor(s/60); const ss=s%60; return `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
+  function startRecognition(){
+    if (!supportsSpeechRecognition()){
+      alert('SpeechRecognition not available in this browser. You can still paste a transcript manually and save.');
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.lang = 'en-US';
 
-  function getSeconds(){ const opt = document.querySelector('#prompt').selectedOptions[0]; return parseInt(opt.dataset.seconds||30,10); }
+    finalTranscript = '';
+    transcriptEl.textContent = '';
 
-  function startTimer(seconds){ totalMs = seconds*1000; startTime = performance.now(); tick(); }
-  function tick(){ const now = performance.now(); const elapsed = now - startTime; const rem = Math.max(0, totalMs - elapsed); timeLeftEl.textContent = formatMs(rem); if (rem<=0){ stopRecording(); return; } timerRAF = requestAnimationFrame(tick); }
+    recognition.onstart = () => {
+      recognizing = true; statusEl.textContent = '● listening';
+      startTime = performance.now(); pauses = []; lastSpeechTime = performance.now(); pitchSamples = [];
+      stopBtn.disabled = false; startBtn.disabled = true; saveBtn.disabled = true;
+    };
 
-  function startRecording(){ const seconds=getSeconds(); startTimer(seconds); startRecognition(); }
-  function stopRecording(){ stopRecognition(); if (timerRAF) cancelAnimationFrame(timerRAF); timerRAF=null; timeLeftEl.textContent='00:00'; }
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i=event.resultIndex;i<event.results.length;i++){
+        const res = event.results[i];
+        if (res.isFinal){ finalTranscript += res[0].transcript + ' '; speechDetected(); }
+        else interim += res[0].transcript;
+      }
+      transcriptEl.textContent = (finalTranscript + '\n' + interim).trim();
+      computeLiveMetrics();
+    };
 
-  // SpeechRecognition
-  function startRecognition(){ if (!supportsSR()){ alert('SpeechRecognition not available. Paste text manually.'); return; }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition; recognition = new SR(); recognition.interimResults=true; recognition.continuous=true; recognition.lang='en-US';
-    finalTranscript=''; transcriptEl.textContent=''; pauses=[]; pitchSamples=[]; lastSpeechTime=performance.now();
+    recognition.onerror = (e) => { console.warn('recognition error', e); };
+    recognition.onend = () => { recognizing = false; statusEl.textContent = '● idle'; stopProcessingAudio(); stopBtn.disabled = true; startBtn.disabled = false; saveBtn.disabled = finalTranscript.trim().length===0; };
 
-    recognition.onstart = ()=>{ recognizing=true; statusEl.textContent='● listening'; startBtn.disabled=true; stopBtn.disabled=false; saveBtn.disabled=true; startAudioCapture(); };
-    recognition.onresult = (ev)=>{ let interim=''; for (let i=ev.resultIndex;i<ev.results.length;i++){ const r=ev.results[i]; if (r.isFinal){ finalTranscript += r[0].transcript + ' '; lastSpeechTime = performance.now(); } else interim += r[0].transcript; } transcriptEl.textContent = (finalTranscript + '\n' + interim).trim(); computeMetricsLive(); };
-    recognition.onerror = (e)=>{ console.warn('sr err', e); };
-    recognition.onend = ()=>{ recognizing=false; statusEl.textContent='● idle'; startBtn.disabled=false; stopBtn.disabled=true; saveBtn.disabled = finalTranscript.trim().length===0; stopAudioCapture(); };
     recognition.start();
+    startAudioCaptureForPitch();
   }
-  function stopRecognition(){ if (recognition){ recognition.stop(); recognition=null; } }
 
-  async function startAudioCapture(){ try{ mediaStream = await navigator.mediaDevices.getUserMedia({audio:true}); audioContext = new (window.AudioContext||window.webkitAudioContext)(); const src = audioContext.createMediaStreamSource(mediaStream); const analyser = audioContext.createAnalyser(); analyser.fftSize=2048; src.connect(analyser); const data = new Float32Array(analyser.fftSize);
-      function sample(){ analyser.getFloatTimeDomainData(data); const rms = Math.sqrt(data.reduce((s,v)=>s+v*v,0)/data.length); const now=performance.now(); if (rms>0.01){ lastSpeechTime=now; const p=autoCorrelate(data,audioContext.sampleRate); if (p && p>50 && p<600) pitchSamples.push(p); } else { const silence = now - lastSpeechTime; if (silence>400 && (pauses.length===0 || (now - pauses[pauses.length-1].end)>300)) pauses.push({start:lastSpeechTime,end:now}); }
-        if (recognition) requestAnimationFrame(sample); }
+  function stopRecognition(){ if (recognition){ recognition.stop(); recognition = null; } }
+
+  async function startAudioCaptureForPitch(){
+    try{
+      mediaStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      const analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
+      source.connect(analyser);
+      const data = new Float32Array(analyser.fftSize);
+
+      function sample(){
+        analyser.getFloatTimeDomainData(data);
+        const rms = Math.sqrt(data.reduce((s,v)=>s+v*v,0)/data.length);
+        const now = performance.now();
+        if (rms > 0.01){
+          lastSpeechTime = now;
+          const pitch = autoCorrelate(data, audioContext.sampleRate);
+          if (pitch && pitch>50 && pitch<600) pitchSamples.push(pitch);
+        } else {
+          const silenceLength = now - lastSpeechTime;
+          if (silenceLength>400 && (pauses.length===0 || (now - pauses[pauses.length-1].end) > 300)){
+            pauses.push({start:lastSpeechTime, end:now});
+          }
+        }
+        if (recognition) requestAnimationFrame(sample);
+      }
       requestAnimationFrame(sample);
-    }catch(e){ console.warn('mic fail', e); }
+    }catch(err){ console.warn('audio capture failed', err); }
   }
-  function stopAudioCapture(){ if (mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; } if (audioContext){ audioContext.close(); audioContext=null; } }
 
-  function autoCorrelate(buf,sr){ const SIZE=buf.length; let rms=0; for(let i=0;i<SIZE;i++){ rms+=buf[i]*buf[i]; } rms=Math.sqrt(rms/SIZE); if (rms<0.01) return null; let r1=0,r2=SIZE-1,th=0.2; for(let i=0;i<SIZE/2;i++) if (Math.abs(buf[i])<th){ r1=i; break; } for(let i=1;i<SIZE/2;i++) if (Math.abs(buf[SIZE-i])<th){ r2=SIZE-i; break; } const s = buf.slice(r1,r2); const N=s.length; const c=new Array(N).fill(0); for(let i=0;i<N;i++) for(let j=0;j<N-i;j++) c[i]+=s[j]*s[j+i]; let d=0; while(c[d]>c[d+1]) d++; let maxv=-1,maxp=-1; for(let i=d;i<N;i++){ if (c[i]>maxv){ maxv=c[i]; maxp=i; } } if (maxp===-1) return null; return sr/maxp; }
+  function stopProcessingAudio(){ if (mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; } if (audioContext){ audioContext.close(); audioContext=null; } }
 
-  function computeMetricsFromText(txt,ms){ const words = txt.trim().split(/\s+/).filter(Boolean).length||0; const wpm = ms>0? Math.round(words/(ms/60000)):0; const l=txt.toLowerCase(); let filler=0; FILLERS.forEach(f=>{ const rx=new RegExp('\\b'+escapeRegExp(f)+'\\b','g'); const m=l.match(rx); if(m) filler+=m.length; }); const fillerPerMin = ms>0? (filler/(ms/60000)).toFixed(1):0; const pauseCount=pauses.length; const longest = pauses.reduce((m,p)=>Math.max(m,p.end-p.start),0); const uniq = new Set(txt.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean)); const ttr = words>0? (uniq.size/words).toFixed(2):0; const pitchRange = pitchSamples.length? Math.round(Math.max(...pitchSamples)-Math.min(...pitchSamples)):0; return {words,wpm,filler,fillerPerMin,pauseCount,longest,ttr,pitchRange}; }
+  function autoCorrelate(buf, sampleRate){
+    const SIZE = buf.length; let rms = 0;
+    for (let i=0;i<SIZE;i++){ const val = buf[i]; rms+=val*val; } rms = Math.sqrt(rms/SIZE);
+    if (rms<0.01) return null;
+    let r1=0, r2=SIZE-1, th=0.2;
+    for (let i=0;i<SIZE/2;i++) if (Math.abs(buf[i])<th){ r1=i; break; }
+    for (let i=1;i<SIZE/2;i++) if (Math.abs(buf[SIZE-i])<th){ r2=SIZE-i; break; }
+    buf = buf.slice(r1,r2);
+    const newSize = buf.length; const c = new Array(newSize).fill(0);
+    for (let i=0;i<newSize;i++) for (let j=0;j<newSize-i;j++) c[i]+=buf[j]*buf[j+i];
+    let d=0; while(c[d]>c[d+1]) d++;
+    let maxval=-1, maxpos=-1; for (let i=d;i<newSize;i++){ if (c[i]>maxval){ maxval=c[i]; maxpos=i;} }
+    if (maxpos===-1) return null;
+    const T0 = maxpos; return sampleRate / T0;
+  }
 
-  function computeMetricsLive(){ const txt = transcriptEl.textContent||''; const ms = Math.max(1, performance.now() - (startTime||performance.now())); const m = computeMetricsFromText(txt,ms); renderMetrics(m); }
+  function wordsCount(txt){ if(!txt) return 0; return txt.trim().split(/\s+/).filter(Boolean).length; }
 
-  function renderMetrics(m){ mWpm.textContent = m.wpm; mFillers.textContent = m.fillerPerMin; mPauses.textContent = m.pauseCount; mPitch.textContent = m.pitchRange; renderSuggestion(m); }
-  function renderSuggestion(m){ suggestionEl.style.display='block'; let t=''; if(m.wpm>190) t='Try slowing down and adding 300–500ms pauses.'; else if(m.wpm<110) t='Good calm pace. Raise energy to engage listeners.'; else t='Nice pace — reduce fillers to improve clarity.'; if(m.fillerPerMin>3) t='Replace fillers with short silent pauses.'; suggestionEl.textContent = t; }
+  function computeMetricsFromText(txt, speakingMs){
+    const words = wordsCount(txt);
+    const wpm = speakingMs>0 ? Math.round(words / (speakingMs/60000)) : 0;
+    const lower = txt.toLowerCase();
+    let fillerCount = 0; FILLERS.forEach(f => { const regex = new RegExp('\\b'+escapeRegExp(f)+'\\b','g'); const m = lower.match(regex); if (m) fillerCount += m.length; });
+    const fillerPerMin = speakingMs>0 ? (fillerCount/(speakingMs/60000)).toFixed(1) : 0;
+    const pauseCount = pauses.length;
+    const longestPause = pauses.reduce((m,p)=>Math.max(m, p.end-p.start),0);
+    const uniqueWords = new Set(txt.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean));
+    const ttr = words>0 ? (uniqueWords.size/words).toFixed(2) : 0;
+    const pitchRange = pitchSamples.length? (Math.max(...pitchSamples)-Math.min(...pitchSamples)).toFixed(0) : 0;
+    return {words,wpm,fillerCount,fillerPerMin,pauseCount,longestPause,ttr,pitchRange};
+  }
 
-  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&'); }
+  function computeLiveMetrics(){
+    const txt = transcriptEl.textContent || '';
+    const speakingMs = Math.max(1, performance.now() - (startTime || performance.now()));
+    const m = computeMetricsFromText(txt, speakingMs);
+    renderMetrics(m);
+  }
 
-  // persist sessions
-  function saveSession(){ const txt=transcriptEl.textContent.trim(); if(!txt){ alert('No transcript to save'); return; } const ms = Math.max(1, (timerRAF? performance.now(): performance.now()) - (startTime||performance.now())); const metrics = computeMetricsFromText(txt,ms); const now = new Date().toISOString(); const session={id:now,prompt:document.querySelector('#prompt').value,transcript:txt,metrics,date:now}; const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr.unshift(session); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); saveBtn.disabled=true; }
+  function renderMetrics(m){
+    metricsEl.innerHTML = '';
+    const blocks = [
+      ['WPM', m.wpm], ['Words', m.words], ['Fillers/min', m.fillerPerMin], ['Pauses', m.pauseCount], ['Longest pause (ms)', Math.round(m.longestPause)], ['TTR', m.ttr], ['Pitch range (Hz)', m.pitchRange]
+    ];
+    blocks.forEach(b=>{ const d = document.createElement('div'); d.className='metric'; d.innerHTML = `<div style="font-weight:700">${b[1]}</div><div class="small">${b[0]}</div>`; metricsEl.appendChild(d); });
+    offerSuggestion(m);
+  }
 
-  function refreshHistory(){ const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); if(!arr.length){ historyEl.innerHTML='<div class="small">No sessions yet.</div>'; return;} historyEl.innerHTML=''; arr.forEach(s=>{ const el=document.createElement('div'); el.className='history-item'; el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${s.prompt}</strong><div class="small">${new Date(s.date).toLocaleString()}</div></div><div style="text-align:right"><div class="small">WPM: ${s.metrics.wpm}</div><div style="margin-top:6px"><button class="smallBtn" onclick='replaySession("${s.id}")'>Replay</button> <button class="smallBtn" onclick='deleteSession("${s.id}")'>Delete</button></div></div></div><div style="margin-top:8px;font-size:13px">${escapeHtmlPreview(s.transcript)}</div>`; historyEl.appendChild(el); }); }
+  function offerSuggestion(m){
+    suggestionEl.style.display = 'block';
+    let text = '';
+    if (m.wpm>190) text = 'You speak fast — try adding a 300–500ms pause at commas and sentence breaks.';
+    else if (m.wpm<110) text = 'You speak slowly — try to increase tempo slightly to keep energy up.';
+    else text = 'Pace is in a good band. Work on reducing filler words for clarity.';
+    if (m.fillerPerMin>3) text = 'Too many filler words. Pause briefly instead of using fillers.';
+    suggestionEl.textContent = text;
+  }
 
-  window.replaySession = function(id){ const arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); const s=arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); }
-  window.deleteSession = function(id){ let arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); }
+  function escapeRegExp(string){ return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
+
+  function saveSession(){
+    const now = new Date().toISOString();
+    const txt = transcriptEl.textContent.trim();
+    if (!txt){ alert('No transcript to save.'); return; }
+    const speakingMs = Math.max(1, performance.now() - (startTime || performance.now()));
+    const m = computeMetricsFromText(txt, speakingMs);
+    const session = {id: now, prompt: promptEl.value, transcript: txt, metrics: m, date: now};
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr.unshift(session); localStorage.setItem('orator_history', JSON.stringify(arr));
+    refreshHistory(); saveBtn.disabled=true;
+  }
+
+  function refreshHistory(){
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]');
+    if (!arr.length) { historyEl.innerHTML = '<div class="small">No sessions yet.</div>'; return; }
+    const rows = arr.map(s=>`<div style="padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,0.02)"><div style="display:flex;justify-content:space-between"><div><strong>${s.prompt}</strong><div class="small">${new Date(s.date).toLocaleString()}</div></div><div style="text-align:right"><div class="small">WPM: ${s.metrics.wpm}</div><div style="margin-top:6px"><button class="smallBtn" data-id="${s.id}" onclick="replaySession('${s.id}')">Replay</button> <button class="smallBtn" data-id="${s.id}" onclick="deleteSession('${s.id}')">Delete</button></div></div></div><div style="margin-top:6px;font-size:13px">${escapeHtmlPreview(s.transcript)}</div></div>`).join('');
+    historyEl.innerHTML = rows;
+  }
+
+  window.replaySession = function(id){
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); const s = arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); }
+  window.deleteSession = function(id){ let arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); }
+
   function escapeHtmlPreview(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
-  function exportCSV(){ const arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); if(!arr.length){ alert('No sessions to export'); return; } const header=['date','prompt','words','wpm','fillers','pauses','longest','ttr','pitchRange','transcript']; const lines=[header.join(',')]; arr.forEach(s=>{ const row=[s.date,`"${s.prompt.replace(/"/g,'""')}"`,s.metrics.words,s.metrics.wpm,s.metrics.filler,s.metrics.pauseCount,Math.round(s.metrics.longest),s.metrics.ttr,s.metrics.pitchRange,`"${s.transcript.replace(/"/g,'""')}"`]; lines.push(row.join(',')); }); const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='orator_history.csv'; a.click(); URL.revokeObjectURL(url); }
+  function exportCSV(){
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); if (!arr.length){ alert('No sessions to export.'); return; }
+    const header = ['date','prompt','words','wpm','fillers','pauses','longestPause','ttr','pitchRange','transcript'];
+    const lines = [header.join(',')];
+    arr.forEach(s=>{ const row=[s.date,`"${s.prompt.replace(/"/g,'""')}"`,s.metrics.words,s.metrics.wpm,s.metrics.fillerCount,s.metrics.pauseCount,Math.round(s.metrics.longestPause),s.metrics.ttr,s.metrics.pitchRange,`"${s.transcript.replace(/"/g,'""') }"`]; lines.push(row.join(',')); });
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='orator_history.csv'; a.click(); URL.revokeObjectURL(url);
+  }
 
-  // UI wiring
-  startBtn.addEventListener('click', ()=>{ startBtn.disabled=true; stopBtn.disabled=false; saveBtn.disabled=true; startTime = performance.now(); startRecording(); });
-  stopBtn.addEventListener('click', ()=>{ stopRecording(); });
+  document.addEventListener('click', e=>{
+    if (e.target.matches('.smallBtn')){
+      const id = e.target.getAttribute('data-id'); if (e.target.textContent.trim()==='Replay') replaySession(id); else deleteSession(id);
+    }
+  });
+
+  $('demoFill').addEventListener('click', ()=>{
+    const sample = 'Hello, my name is Alex. I work on simple products that help people learn. In this short pitch I will show why our tool helps learners stay excited. Thank you.';
+    transcriptEl.textContent = sample; startTime = performance.now() - 35000; computeLiveMetrics(); saveBtn.disabled=false; });
+
+  startBtn.addEventListener('click', ()=>{ startRecognition(); startTime = performance.now(); });
+  stopBtn.addEventListener('click', ()=>{ stopRecognition(); });
   saveBtn.addEventListener('click', ()=>{ saveSession(); });
   exportBtn.addEventListener('click', ()=>{ exportCSV(); });
-  $('demoFill').addEventListener('click', ()=>{ const sample='Hello, my name is Alex. I work on simple products that help people learn. In this short pitch I will show why our tool helps learners stay excited.'; transcriptEl.textContent = sample; renderMetrics(computeMetricsFromText(sample,35000)); saveBtn.disabled=false; });
-  $('clearHistory2').addEventListener('click', ()=>{ if(confirm('Clear all stored sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); } });
+  $('clearHistory').addEventListener('click', ()=>{ if (confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); } });
 
-  transcriptEl.addEventListener('input', ()=>{ saveBtn.disabled = transcriptEl.textContent.trim().length===0; computeMetricsLive(); });
+  transcriptEl.addEventListener('input', ()=>{ saveBtn.disabled = transcriptEl.textContent.trim().length===0; computeLiveMetrics(); });
 
-  // fallback / init
-  refreshHistory(); timeLeftEl.textContent='00:00'; if(!supportsSR()){ statusEl.textContent='● speech API not available — paste transcript manually'; startBtn.disabled=false; }
+  refreshHistory();
+  if (!supportsSpeechRecognition()){
+    statusEl.textContent = '● speech API not available — paste transcript manually'; startBtn.disabled = true; stopBtn.disabled = true;
+  }
 
+  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   </script>
 </body>
 </html>
