@@ -200,13 +200,14 @@
     const wpm = speakingMs>0 ? Math.round(words / (speakingMs/60000)) : 0;
     const lower = txt.toLowerCase();
     let fillerCount = 0; FILLERS.forEach(f => { const regex = new RegExp('\\b'+escapeRegExp(f)+'\\b','g'); const m = lower.match(regex); if (m) fillerCount += m.length; });
-    const fillerPerMin = speakingMs>0 ? (fillerCount/(speakingMs/60000)).toFixed(1) : 0;
+    const fillerPerMin = speakingMs>0 ? (fillerCount/(speakingMs/60000)) : 0;
     const pauseCount = pauses.length;
     const longestPause = pauses.reduce((m,p)=>Math.max(m, p.end-p.start),0);
     const uniqueWords = new Set(txt.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean));
-    const ttr = words>0 ? (uniqueWords.size/words).toFixed(2) : 0;
-    const pitchRange = pitchSamples.length? (Math.max(...pitchSamples)-Math.min(...pitchSamples)).toFixed(0) : 0;
-    return {words,wpm,fillerCount,fillerPerMin,pauseCount,longestPause,ttr,pitchRange};
+    const ttr = words>0 ? (uniqueWords.size/words) : 0;
+    const pitchRange = pitchSamples.length? (Math.max(...pitchSamples)-Math.min(...pitchSamples)) : 0;
+    // return numeric values (not strings)
+    return {words, wpm, fillerCount, fillerPerMin: Number(fillerPerMin.toFixed(2)), pauseCount, longestPause, ttr: Number(ttr.toFixed(2)), pitchRange: Number(pitchRange.toFixed(0))};
   }
 
   function computeLiveMetrics(){
@@ -237,6 +238,142 @@
 
   function escapeRegExp(string){ return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
 
+  // ===== Aurate: scorecard generator =====
+  function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, Math.round(v))); }
+
+  // normalize WPM -> Pace score (ideal 110-150)
+  function scorePace(wpm){
+    if(wpm <= 60) return Math.round((wpm/60)*40);
+    if(wpm <= 110) return Math.round(40 + ((wpm-60)/50)*30);
+    if(wpm <= 150) return Math.round(70 + ((wpm-110)/40)*20);
+    if(wpm <= 190) return Math.round(90 - ((wpm-150)/40)*40);
+    return 50;
+  }
+
+  // fillers per minute -> Fillers score (ideal 0-1)
+  function scoreFillers(fpm){
+    if(fpm <= 0.5) return 100;
+    if(fpm <= 1.5) return Math.round(100 - (fpm-0.5)*40);
+    if(fpm <= 4) return Math.round(60 - (fpm-1.5)*15);
+    return 10;
+  }
+
+  // pauses count -> Pauses score (fewer is better)
+  function scorePauses(pauseCount, words){
+    const expected = Math.max(1, words/30);
+    const ratio = pauseCount / expected;
+    if(ratio <= 0.8) return 100;
+    if(ratio <= 1.2) return Math.round(100 - (ratio-0.8)*125);
+    if(ratio <= 2.5) return Math.round(50 - (ratio-1.2)*40);
+    return 10;
+  }
+
+  // type-token ratio -> Lexical variety (higher is better)
+  function scoreTTR(ttr){
+    const v = ttr*100;
+    if(v >= 55) return 100;
+    if(v >= 40) return Math.round(70 + (v-40)*(30/15));
+    if(v >= 20) return Math.round(40 + (v-20)*(30/20));
+    return Math.round(20 + v);
+  }
+
+  // pitchRange (Hz) -> Prosody score
+  function scoreProsody(rangeHz){
+    if(rangeHz <= 40) return 30;
+    if(rangeHz <= 120) return Math.round(30 + (rangeHz-40)*(20/80));
+    if(rangeHz <= 400) return Math.round(50 + (rangeHz-120)*(40/280));
+    if(rangeHz <= 700) return Math.round(90 - (rangeHz-400)*(60/300));
+    return 40;
+  }
+
+  function computeScoreAndFeedback(metrics){
+    // metrics: {words,wpm,fillerCount,fillerPerMin,pauseCount,longestPause,ttr,pitchRange}
+    const pPace = clamp(scorePace(metrics.wpm));
+    const pFill = clamp(scoreFillers(Number(metrics.fillerPerMin)));
+    const pPause = clamp(scorePauses(metrics.pauseCount, metrics.words));
+    const pTTR = clamp(scoreTTR(Number(metrics.ttr)));
+    const pPros = clamp(scoreProsody(Number(metrics.pitchRange)));
+
+    const overall = Math.round((pPace + pFill + pPause + pTTR + pPros) / 5);
+
+    let oneLiner = '';
+    if(overall >= 85) oneLiner = 'Strong delivery: clear, controlled, and engaging.';
+    else if(overall >= 70) oneLiner = 'Good delivery with room to polish pacing and small habits.';
+    else if(overall >= 50) oneLiner = 'Developing: focus on pace, reduce fillers, and add vocal variety.';
+    else oneLiner = 'Needs work: reduce filler words, raise energy, and structure sentences more clearly.';
+
+    const tips = [];
+    const components = [
+      {name:'Pace', score:pPace, detail:`WPM: ${metrics.wpm}`},
+      {name:'Fillers', score:pFill, detail:`Fillers/min: ${metrics.fillerPerMin}`},
+      {name:'Pauses', score:pPause, detail:`Pauses: ${metrics.pauseCount}`},
+      {name:'Variety', score:pTTR, detail:`TTR: ${metrics.ttr}`},
+      {name:'Prosody', score:pPros, detail:`Pitch range: ${metrics.pitchRange}Hz`}
+    ];
+    components.sort((a,b)=>a.score-b.score);
+
+    function tipFor(comp){
+      if(comp.name==='Pace'){
+        if(metrics.wpm < 90) return 'Speed up slightly: aim for 110–140 WPM. Practice reading short paragraphs with a metronome.';
+        if(metrics.wpm > 160) return 'Slow down: add 300–500ms pauses at commas and sentence ends to improve clarity.';
+        return 'Maintain your pace and add emphasis on key words to increase engagement.';
+      }
+      if(comp.name==='Fillers'){
+        if(metrics.fillerPerMin > 3) return 'Reduce filler words: pause instead of saying “um/like”. Practice silent pauses.';
+        if(metrics.fillerPerMin > 1.2) return 'Work on filler awareness: record and note your top 3 fillers and avoid them.';
+        return 'Good control of fillers — keep practicing mindful pauses.';
+      }
+      if(comp.name==='Pauses'){
+        if(metrics.pauseCount > Math.max(3, metrics.words/20)) return 'Reduce long unnecessary pauses. Use linking phrases if you lose the thread.';
+        return 'Pauses are natural; align them with punctuation to improve flow.';
+      }
+      if(comp.name==='Variety'){
+        return 'Increase lexical variety: replace repeated words, use short synonyms, and vary sentence openings.';
+      }
+      if(comp.name==='Prosody'){
+        if(metrics.pitchRange < 80) return 'Add vocal variety: emphasize key phrases with gentle pitch changes and contrast.';
+        if(metrics.pitchRange > 450) return 'Control pitch variation: smooth modulation to avoid sounding erratic.';
+        return 'Good vocal dynamics; keep using pitch to highlight important words.';
+      }
+      return '';
+    }
+
+    for(let i=0;i<5;i++){
+      const comp = components[i % components.length];
+      const candidate = tipFor(comp);
+      if(!tips.includes(candidate)) tips.push(candidate);
+    }
+
+    return {
+      overall,
+      components:{pace:pPace, fillers:pFill, pauses:pPause, variety:pTTR, prosody:pPros},
+      oneLiner,
+      tips
+    };
+  }
+
+  function showScorecard(obj){
+    let el = document.getElementById('scorecard');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'scorecard';
+      el.style.marginTop = '12px';
+      el.className = 'card';
+      el.style.padding = '12px';
+      const parent = document.querySelector('.card'); // main card
+      parent.insertBefore(el, parent.querySelector('.suggestion'));
+    }
+    el.innerHTML = `<strong>Score: ${obj.overall}/100</strong>
+      <div class="small" style="margin-top:6px">${obj.oneLiner}</div>
+      <div style="margin-top:10px"><strong>Top 5 improvements</strong>
+        <ol style="margin-top:6px;padding-left:18px">${obj.tips.map(t=>`<li style="margin-bottom:6px">${t}</li>`).join('')}</ol>
+      </div>
+      <div style="margin-top:8px" class="small">Component scores: Pace ${obj.components.pace}, Fillers ${obj.components.fillers}, Pauses ${obj.components.pauses}, Variety ${obj.components.variety}, Prosody ${obj.components.prosody}</div>
+    `;
+  }
+
+  // ===== End scorecard functions =====
+
   function saveSession(){
     const now = new Date().toISOString();
     const txt = transcriptEl.textContent.trim();
@@ -244,28 +381,48 @@
     const speakingMs = Math.max(1, performance.now() - (startTime || performance.now()));
     const m = computeMetricsFromText(txt, speakingMs);
     const session = {id: now, prompt: promptEl.value, transcript: txt, metrics: m, date: now};
+
+    // compute scorecard and attach
+    const scorecard = computeScoreAndFeedback(m);
+    session.scorecard = scorecard;
+
     const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr.unshift(session); localStorage.setItem('orator_history', JSON.stringify(arr));
     refreshHistory(); saveBtn.disabled=true;
+
+    // show the scorecard for immediate feedback
+    showScorecard(scorecard);
   }
 
   function refreshHistory(){
     const arr = JSON.parse(localStorage.getItem('orator_history')||'[]');
     if (!arr.length) { historyEl.innerHTML = '<div class="small">No sessions yet.</div>'; return; }
-    const rows = arr.map(s=>`<div style="padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,0.02)"><div style="display:flex;justify-content:space-between"><div><strong>${s.prompt}</strong><div class="small">${new Date(s.date).toLocaleString()}</div></div><div style="text-align:right"><div class="small">WPM: ${s.metrics.wpm}</div><div style="margin-top:6px"><button class="smallBtn" data-id="${s.id}" onclick="replaySession('${s.id}')">Replay</button> <button class="smallBtn" data-id="${s.id}" onclick="deleteSession('${s.id}')">Delete</button></div></div></div><div style="margin-top:6px;font-size:13px">${escapeHtmlPreview(s.transcript)}</div></div>`).join('');
+    const rows = arr.map(s=>{
+      const scoreText = s.scorecard ? ` • Score: ${s.scorecard.overall}` : '';
+      return `<div style="padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,0.02)">
+        <div style="display:flex;justify-content:space-between">
+          <div><strong>${s.prompt}</strong><div class="small">${new Date(s.date).toLocaleString()}</div></div>
+          <div style="text-align:right">
+            <div class="small">WPM: ${s.metrics.wpm}${scoreText}</div>
+            <div style="margin-top:6px"><button class="smallBtn" data-id="${s.id}" onclick="replaySession('${s.id}')">Replay</button> <button class="smallBtn" data-id="${s.id}" onclick="deleteSession('${s.id}')">Delete</button></div>
+          </div>
+        </div>
+        <div style="margin-top:6px;font-size:13px">${escapeHtmlPreview(s.transcript)}</div>
+      </div>`;
+    }).join('');
     historyEl.innerHTML = rows;
   }
 
   window.replaySession = function(id){
-    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); const s = arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); }
-  window.deleteSession = function(id){ let arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); }
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); const s = arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); if(s.scorecard) showScorecard(s.scorecard); }
+  window.deleteSession = function(id){ let arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); }
 
   function escapeHtmlPreview(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
   function exportCSV(){
     const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); if (!arr.length){ alert('No sessions to export.'); return; }
-    const header = ['date','prompt','words','wpm','fillers','pauses','longestPause','ttr','pitchRange','transcript'];
+    const header = ['date','prompt','words','wpm','fillers','pauses','longestPause','ttr','pitchRange','score','transcript'];
     const lines = [header.join(',')];
-    arr.forEach(s=>{ const row=[s.date,`"${s.prompt.replace(/"/g,'""')}"`,s.metrics.words,s.metrics.wpm,s.metrics.fillerCount,s.metrics.pauseCount,Math.round(s.metrics.longestPause),s.metrics.ttr,s.metrics.pitchRange,`"${s.transcript.replace(/"/g,'""') }"`]; lines.push(row.join(',')); });
+    arr.forEach(s=>{ const row=[s.date,`"${s.prompt.replace(/"/g,'""')}"`,s.metrics.words,s.metrics.wpm,s.metrics.fillerCount,s.metrics.pauseCount,Math.round(s.metrics.longestPause),s.metrics.ttr,s.metrics.pitchRange,(s.scorecard? s.scorecard.overall:''),`"${s.transcript.replace(/"/g,'""') }"`]; lines.push(row.join(',')); });
     const blob = new Blob([lines.join('\n')], {type:'text/csv'});
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='orator_history.csv'; a.click(); URL.revokeObjectURL(url);
   }
@@ -284,7 +441,7 @@
   stopBtn.addEventListener('click', ()=>{ stopRecognition(); });
   saveBtn.addEventListener('click', ()=>{ saveSession(); });
   exportBtn.addEventListener('click', ()=>{ exportCSV(); });
-  $('clearHistory').addEventListener('click', ()=>{ if (confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); } });
+  $('clearHistory').addEventListener('click', ()=>{ if (confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); } });
 
   transcriptEl.addEventListener('input', ()=>{ saveBtn.disabled = transcriptEl.textContent.trim().length===0; computeLiveMetrics(); });
 
