@@ -4,31 +4,49 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Aurate — Orator Trainer (Demo)</title>
+
+  <!-- THEME TOKENS & UI STYLES -->
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--teal:#06b6d4;--gold:#d7b36a;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071029 0%, #071827 60%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,'Helvetica Neue',Arial;color:#e6eef8}
+    :root{
+      --radius:10px;
+      --glass:rgba(255,255,255,0.04);
+      --focus-ring:0 0 0 4px rgba(63,179,255,0.12);
+      --card-elev:0 8px 32px rgba(3,10,18,0.6);
+      --transition:180ms cubic-bezier(.2,.9,.2,1);
+      --brand-deep:#0E4D4A;
+      --aurora:#3FB3FF;
+      --accent:#E7B96B;
+    }
+    :root[data-theme="dark"]{
+      --bg:#071426; --surface:#0b1218; --text:#E7F6FB; --muted:#95A6B6; --cta-text:#042022;
+    }
+    :root[data-theme="light"]{
+      --bg:#F6FAFB; --surface:#FFFFFF; --text:#06292D; --muted:#51686E; --cta-text:#FFFFFF;
+    }
+
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;font-size:15px;transition:background var(--transition), color var(--transition)}
     .wrap{max-width:980px;margin:28px auto;padding:20px}
     header{display:flex;align-items:center;gap:18px}
-    .brand { display:flex; gap:12px; align-items:center; }
+    .brand{display:flex;gap:12px;align-items:center;flex:1}
     .logo-img{width:72px;height:48px;object-fit:contain;border-radius:8px}
     header h1{margin:0;font-size:20px}
+    nav.tabs{display:flex;gap:8px}
+    .tab-active{border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px}
     .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
-    .card{background:var(--card);border-radius:12px;padding:14px;color:#e6eef8;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
-    button{background:var(--teal);border:none;color:#042022;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
-    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    .controls{display:flex;gap:8px;margin-top:8px}
-    #transcript{min-height:120px;white-space:pre-wrap;background:var(--glass);padding:10px;border-radius:8px;color:#e6eef8}
-    .metrics{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-    .metric{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:8px;border-radius:8px;min-width:120px}
-    .history-list{max-height:260px;overflow:auto;margin-top:10px}
-    table{width:100%;border-collapse:collapse;color:#cfe8ff}
-    td,th{padding:6px;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:13px}
-    footer{margin-top:18px;color:var(--muted);font-size:13px}
-    .suggestion{background:rgba(6,182,212,0.08);color:var(--teal);padding:8px;border-radius:8px;margin-top:10px}
+    .card{background:var(--surface);border-radius:var(--radius);padding:14px;color:var(--text);box-shadow:var(--card-elev);transition:background var(--transition), box-shadow var(--transition)}
     .small{font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:8px;margin-top:8px}
+    #transcript{min-height:120px;white-space:pre-wrap;background:var(--glass);padding:10px;border-radius:8px;color:var(--text)}
+    .metrics{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+    .metric{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:10px;border-radius:8px;min-width:120px}
+    .history-list{max-height:260px;overflow:auto;margin-top:10px}
+    button{border:none;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    .btn-cta{background:linear-gradient(90deg,var(--brand-deep),var(--aurora));color:var(--cta-text)}
+    .btn-secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
     .smallBtn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px 8px;border-radius:6px;font-size:12px}
-    #scorecard{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:8px; padding:12px; margin-top:12px}
-    #profileBreakdown .small{color:#cfe8ff}
+    .suggestion{background:rgba(63,179,255,0.06);color:var(--aurora);padding:8px;border-radius:8px;margin-top:10px}
+    #scorecard{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius:8px; padding:12px; margin-top:12px}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
@@ -41,10 +59,18 @@
           <div class="small">speak better every time — Record, transcribe (browser), get coaching feedback, and track progress.</div>
         </div>
       </div>
+
+      <nav class="tabs" role="navigation" aria-label="main tabs">
+        <button id="tabPractice" class="tab-active smallBtn">Practice</button>
+        <button id="tabProfile" class="smallBtn">Profile</button>
+        <button id="tabDocs" class="smallBtn">Docs</button>
+      </nav>
+
+      <button id="themeToggle" class="smallBtn" style="margin-left:10px">Theme</button>
     </header>
 
     <div class="grid">
-      <main class="card">
+      <main class="card" id="practiceMain">
         <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
           <div>
             <strong>Live Practice</strong>
@@ -54,7 +80,7 @@
         </div>
 
         <div style="margin-top:12px">
-          <select id="prompt" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#e6eef8;border:1px solid rgba(255,255,255,0.04)">
+          <select id="prompt" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.04)">
             <option>60s: Personal intro</option>
             <option>45s: Explain your favourite concept</option>
             <option>30s: Pitch a product</option>
@@ -63,18 +89,48 @@
           </select>
         </div>
 
-        <div class="controls">
-          <button id="startBtn">Start</button>
-          <button id="stopBtn" class="secondary" disabled>Stop</button>
-          <button id="saveBtn" class="secondary" disabled>Save session</button>
-          <button id="exportBtn" class="secondary">Export CSV</button>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <label class="small" style="margin-right:6px">Name</label>
+          <input id="userName" placeholder="Your name" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text);width:220px" />
+          <button id="saveNameBtn" class="smallBtn">Save</button>
         </div>
 
-        <div id="transcript" contenteditable="false" aria-live="polite">(transcript appears here)</div>
+        <div class="controls" style="margin-top:12px">
+          <button id="startBtn" class="btn-cta">Start</button>
+          <button id="stopBtn" class="btn-secondary" disabled>Stop</button>
+          <button id="saveBtn" class="btn-secondary" disabled>Save session</button>
+          <button id="exportBtn" class="btn-secondary">Export CSV</button>
+        </div>
+
+        <div id="transcript" contenteditable="false" aria-live="polite" style="margin-top:12px">(transcript appears here)</div>
 
         <div class="metrics" id="metrics"></div>
 
         <div class="suggestion" id="suggestion" style="display:none"></div>
+
+        <!-- Docs panel -->
+        <div id="docsPanel" style="display:none;margin-top:12px" class="card">
+          <strong>How to use Aurate (quick)</strong>
+          <ol style="margin-top:8px">
+            <li>Enter your name and click Save.</li>
+            <li>Pick a prompt and press Start. Speak naturally for the time limit.</li>
+            <li>Click Stop then Save session. Your session will be stored with your name.</li>
+            <li>Open Profile tab to change name or clear all sessions.</li>
+            <li>Export CSV to download session history for analysis.</li>
+          </ol>
+          <div class="small" style="margin-top:8px">Tip: use Insert demo speech to test quickly. Data is stored locally in your browser.</div>
+        </div>
+
+        <!-- Profile panel -->
+        <div id="profilePanel" style="display:none;margin-top:12px" class="card">
+          <strong>Profile</strong>
+          <div class="small" style="margin-top:8px">Current name: <span id="profileNameDisplay">—</span></div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button id="changeNameBtn" class="smallBtn">Change name</button>
+            <button id="clearAllBtn" class="smallBtn">Clear all sessions</button>
+          </div>
+        </div>
+
       </main>
 
       <aside class="card">
@@ -84,424 +140,237 @@
           <strong>Session controls</strong>
           <div class="small">You can replay transcripts or clear history.</div>
           <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="clearHistory" class="secondary">Clear</button>
-            <button id="demoFill" class="secondary">Insert demo speech</button>
+            <button id="clearHistory" class="smallBtn">Clear</button>
+            <button id="demoFill" class="smallBtn">Insert demo speech</button>
           </div>
         </div>
       </aside>
     </div>
 
-    <footer class="card small">Notes: this demo uses your browser's speech recognition when available (Chrome/Edge). If not available, you can paste a transcript manually into the transcript box and click "Save session".</footer>
+    <footer class="card small" style="margin-top:18px">Notes: this demo uses your browser's speech recognition when available (Chrome/Edge). If not available, you can paste a transcript manually into the transcript box and click "Save session".</footer>
   </div>
 
+  <!-- APP LOGIC -->
   <script>
-  // == Aurate: in-browser demo ==
+  // small helpers and UI bindings
   const $ = id => document.getElementById(id);
-  const FILLERS = ['um','uh','like','you know','actually','basically','right','so','i mean','kind of','sort of'];
-
-  let recognition = null, recognizing=false, finalTranscript='', startTime=null, audioContext=null, mediaStream=null, lastSpeechTime=0, pauses=[], pitchSamples=[];
 
   const startBtn = $('startBtn'), stopBtn = $('stopBtn'), saveBtn = $('saveBtn'), exportBtn = $('exportBtn');
   const transcriptEl = $('transcript'), statusEl = $('status'), metricsEl = $('metrics'), suggestionEl = $('suggestion'), historyEl = $('history'), promptEl = $('prompt');
+  const userNameInput = $('userName'), saveNameBtn = $('saveNameBtn'), profileNameDisplay = $('profileNameDisplay'), changeNameBtn = $('changeNameBtn'), clearAllBtn = $('clearAllBtn');
+
+  const FILLERS = ['um','uh','like','you know','actually','basically','right','so','i mean','kind of','sort of'];
+
+  // recognition & audio
+  let recognition=null, finalTranscript='', startTime=null, audioContext=null, mediaStream=null, lastSpeechTime=0, pauses=[], pitchSamples=[];
 
   function supportsSpeechRecognition(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
-
   function startRecognition(){
-    if (!supportsSpeechRecognition()){
-      alert('SpeechRecognition not available in this browser. You can still paste a transcript manually and save.');
-      return;
-    }
+    if (!supportsSpeechRecognition()){ alert('SpeechRecognition not available. Paste transcript manually.'); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SR();
-    recognition.interimResults = true;
-    recognition.continuous = true;
-    recognition.lang = 'en-US';
-
-    finalTranscript = '';
-    transcriptEl.textContent = '';
-
-    recognition.onstart = () => {
-      recognizing = true; statusEl.textContent = '● listening';
-      startTime = performance.now(); pauses = []; lastSpeechTime = performance.now(); pitchSamples = [];
-      stopBtn.disabled = false; startBtn.disabled = true; saveBtn.disabled = true;
-    };
-
+    recognition.interimResults = true; recognition.continuous = true; recognition.lang='en-US';
+    finalTranscript=''; transcriptEl.textContent='';
+    recognition.onstart = () => { startTime = performance.now(); pauses=[]; lastSpeechTime = performance.now(); pitchSamples=[]; statusEl.textContent='● listening'; stopBtn.disabled=false; startBtn.disabled=true; saveBtn.disabled=true; };
     recognition.onresult = (event) => {
-      let interim = '';
-      for (let i=event.resultIndex;i<event.results.length;i++){
-        const res = event.results[i];
-        if (res.isFinal){ finalTranscript += res[0].transcript + ' '; speechDetected(); }
-        else interim += res[0].transcript;
-      }
-      transcriptEl.textContent = (finalTranscript + '\n' + interim).trim();
-      computeLiveMetrics();
+      let interim=''; for(let i=event.resultIndex;i<event.results.length;i++){ const res=event.results[i]; if(res.isFinal){ finalTranscript += res[0].transcript + ' '; } else interim += res[0].transcript; }
+      transcriptEl.textContent = (finalTranscript + '\n' + interim).trim(); computeLiveMetrics();
     };
-
-    recognition.onerror = (e) => { console.warn('recognition error', e); };
-    recognition.onend = () => { recognizing = false; statusEl.textContent = '● idle'; stopProcessingAudio(); stopBtn.disabled = true; startBtn.disabled = false; saveBtn.disabled = finalTranscript.trim().length===0; };
-
-    recognition.start();
-    startAudioCaptureForPitch();
+    recognition.onerror = (e)=> console.warn('recog err', e);
+    recognition.onend = ()=> { recognition=null; statusEl.textContent='● idle'; stopProcessingAudio(); stopBtn.disabled=true; startBtn.disabled=false; saveBtn.disabled = finalTranscript.trim().length===0; };
+    recognition.start(); startAudioCaptureForPitch();
   }
-
-  function stopRecognition(){ if (recognition){ recognition.stop(); recognition = null; } }
+  function stopRecognition(){ if(recognition){ recognition.stop(); recognition=null; } }
 
   async function startAudioCaptureForPitch(){
     try{
       mediaStream = await navigator.mediaDevices.getUserMedia({audio:true});
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContext.createMediaStreamSource(mediaStream);
-      const analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
-      source.connect(analyser);
+      const analyser = audioContext.createAnalyser(); analyser.fftSize = 2048; source.connect(analyser);
       const data = new Float32Array(analyser.fftSize);
-
       function sample(){
         analyser.getFloatTimeDomainData(data);
         const rms = Math.sqrt(data.reduce((s,v)=>s+v*v,0)/data.length);
         const now = performance.now();
-        if (rms > 0.01){
-          lastSpeechTime = now;
-          const pitch = autoCorrelate(data, audioContext.sampleRate);
-          if (pitch && pitch>50 && pitch<600) pitchSamples.push(pitch);
-        } else {
-          const silenceLength = now - lastSpeechTime;
-          if (silenceLength>400 && (pauses.length===0 || (now - pauses[pauses.length-1].end) > 300)){
-            pauses.push({start:lastSpeechTime, end:now});
-          }
-        }
+        if (rms > 0.01){ lastSpeechTime = now; const pitch = autoCorrelate(data, audioContext.sampleRate); if (pitch && pitch>50 && pitch<600) pitchSamples.push(pitch); }
+        else { const silenceLength = now - lastSpeechTime; if (silenceLength>400 && (pauses.length===0 || (now - pauses[pauses.length-1].end) > 300)){ pauses.push({start:lastSpeechTime, end:now}); } }
         if (recognition) requestAnimationFrame(sample);
       }
       requestAnimationFrame(sample);
     }catch(err){ console.warn('audio capture failed', err); }
   }
-
-  function stopProcessingAudio(){ if (mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; } if (audioContext){ audioContext.close(); audioContext=null; } }
+  function stopProcessingAudio(){ if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; } if(audioContext){ audioContext.close(); audioContext=null; } }
 
   function autoCorrelate(buf, sampleRate){
-    const SIZE = buf.length; let rms = 0;
-    for (let i=0;i<SIZE;i++){ const val = buf[i]; rms+=val*val; } rms = Math.sqrt(rms/SIZE);
-    if (rms<0.01) return null;
-    let r1=0, r2=SIZE-1, th=0.2;
-    for (let i=0;i<SIZE/2;i++) if (Math.abs(buf[i])<th){ r1=i; break; }
-    for (let i=1;i<SIZE/2;i++) if (Math.abs(buf[SIZE-i])<th){ r2=SIZE-i; break; }
-    buf = buf.slice(r1,r2);
-    const newSize = buf.length; const c = new Array(newSize).fill(0);
-    for (let i=0;i<newSize;i++) for (let j=0;j<newSize-i;j++) c[i]+=buf[j]*buf[j+i];
-    let d=0; while(c[d]>c[d+1]) d++;
-    let maxval=-1, maxpos=-1; for (let i=d;i<newSize;i++){ if (c[i]>maxval){ maxval=c[i]; maxpos=i;} }
-    if (maxpos===-1) return null;
-    const T0 = maxpos; return sampleRate / T0;
+    const SIZE = buf.length; let rms=0; for(let i=0;i<SIZE;i++){ rms+=buf[i]*buf[i]; } rms=Math.sqrt(rms/SIZE); if(rms<0.01) return null;
+    let r1=0, r2=SIZE-1, th=0.2; for(let i=0;i<SIZE/2;i++) if(Math.abs(buf[i])<th){ r1=i; break; } for(let i=1;i<SIZE/2;i++) if(Math.abs(buf[SIZE-i])<th){ r2=SIZE-i; break; }
+    buf = buf.slice(r1,r2); const newSize = buf.length; const c = new Array(newSize).fill(0);
+    for(let i=0;i<newSize;i++) for(let j=0;j<newSize-i;j++) c[i]+=buf[j]*buf[j+i];
+    let d=0; while(c[d]>c[d+1]) d++; let maxval=-1, maxpos=-1; for(let i=d;i<newSize;i++){ if(c[i]>maxval){ maxval=c[i]; maxpos=i; } }
+    if(maxpos===-1) return null; const T0 = maxpos; return sampleRate/T0;
   }
 
   function wordsCount(txt){ if(!txt) return 0; return txt.trim().split(/\s+/).filter(Boolean).length; }
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&'); }
 
   function computeMetricsFromText(txt, speakingMs){
     const words = wordsCount(txt);
     const wpm = speakingMs>0 ? Math.round(words / (speakingMs/60000)) : 0;
     const lower = txt.toLowerCase();
-    let fillerCount = 0; FILLERS.forEach(f => { const regex = new RegExp('\\b'+escapeRegExp(f)+'\\b','g'); const m = lower.match(regex); if (m) fillerCount += m.length; });
+    let fillerCount=0; FILLERS.forEach(f=>{ const m = lower.match(new RegExp('\\b'+escapeRegExp(f)+'\\b','g')); if(m) fillerCount+=m.length; });
     const fillerPerMin = speakingMs>0 ? (fillerCount/(speakingMs/60000)) : 0;
     const pauseCount = pauses.length;
     const longestPause = pauses.reduce((m,p)=>Math.max(m, p.end-p.start),0);
     const uniqueWords = new Set(txt.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean));
     const ttr = words>0 ? (uniqueWords.size/words) : 0;
     const pitchRange = pitchSamples.length? (Math.max(...pitchSamples)-Math.min(...pitchSamples)) : 0;
-    // return numeric values (not strings)
     return {words, wpm, fillerCount, fillerPerMin: Number(fillerPerMin.toFixed(2)), pauseCount, longestPause, ttr: Number(ttr.toFixed(2)), pitchRange: Number(pitchRange.toFixed(0))};
   }
 
-  function computeLiveMetrics(){
-    const txt = transcriptEl.textContent || '';
-    const speakingMs = Math.max(1, performance.now() - (startTime || performance.now()));
-    const m = computeMetricsFromText(txt, speakingMs);
-    renderMetrics(m);
-  }
+  function computeLiveMetrics(){ const txt = transcriptEl.textContent || ''; const speakingMs = Math.max(1, performance.now() - (startTime || performance.now())); const m = computeMetricsFromText(txt, speakingMs); renderMetrics(m); }
 
   function renderMetrics(m){
     metricsEl.innerHTML = '';
-    const blocks = [
-      ['WPM', m.wpm], ['Words', m.words], ['Fillers/min', m.fillerPerMin], ['Pauses', m.pauseCount], ['Longest pause (ms)', Math.round(m.longestPause)], ['TTR', m.ttr], ['Pitch range (Hz)', m.pitchRange]
-    ];
-    blocks.forEach(b=>{ const d = document.createElement('div'); d.className='metric'; d.innerHTML = `<div style="font-weight:700">${b[1]}</div><div class="small">${b[0]}</div>`; metricsEl.appendChild(d); });
+    const blocks = [['WPM', m.wpm], ['Words', m.words], ['Fillers/min', m.fillerPerMin], ['Pauses', m.pauseCount], ['Longest pause (ms)', Math.round(m.longestPause)], ['TTR', m.ttr], ['Pitch range (Hz)', m.pitchRange]];
+    blocks.forEach(b=>{ const d=document.createElement('div'); d.className='metric'; d.innerHTML = `<div style="font-weight:700">${b[1]}</div><div class="small">${b[0]}</div>`; metricsEl.appendChild(d); });
     offerSuggestion(m);
   }
-
   function offerSuggestion(m){
-    suggestionEl.style.display = 'block';
-    let text = '';
-    if (m.wpm>190) text = 'You speak fast — try adding a 300–500ms pause at commas and sentence breaks.';
-    else if (m.wpm<110) text = 'You speak slowly — try to increase tempo slightly to keep energy up.';
-    else text = 'Pace is in a good band. Work on reducing filler words for clarity.';
-    if (m.fillerPerMin>3) text = 'Too many filler words. Pause briefly instead of using fillers.';
+    suggestionEl.style.display='block';
+    let text='';
+    if(m.wpm>190) text='You speak fast — add short pauses at commas and ends.';
+    else if(m.wpm<110) text='You speak slowly — increase tempo slightly to keep energy.';
+    else text='Pace is good. Reduce fillers for clarity.';
+    if(m.fillerPerMin>3) text='Too many fillers. Pause instead of saying "um".';
     suggestionEl.textContent = text;
   }
 
-  function escapeRegExp(string){ return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
-
-  // ===== Skill profile & personalized tips (inserted) =====
-
-  function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, Math.round(v))); }
-
-  function scoreProsody(rangeHz){
-    if(rangeHz <= 40) return 30;
-    if(rangeHz <= 120) return Math.round(30 + (rangeHz-40)*(20/80));
-    if(rangeHz <= 400) return Math.round(50 + (rangeHz-120)*(40/280));
-    if(rangeHz <= 700) return Math.round(90 - (rangeHz-400)*(60/300));
-    return 40;
-  }
-
+  // ===== Skill profile (same functions as previous) =====
+  function clamp(v,a=0,b=100){ return Math.max(a,Math.min(b,Math.round(v))); }
+  function scoreProsody(rangeHz){ if(rangeHz<=40) return 30; if(rangeHz<=120) return Math.round(30+(rangeHz-40)*(20/80)); if(rangeHz<=400) return Math.round(50+(rangeHz-120)*(40/280)); if(rangeHz<=700) return Math.round(90-(rangeHz-400)*(60/300)); return 40; }
   function textStatsForFlowAndEmpathy(txt){
-    const lower = (txt||'').toLowerCase();
-    const words = lower.split(/\s+/).filter(Boolean);
-    const wordCount = words.length;
-    const connectors = ['and','but','so','because','therefore','however','then','next','also','so'];
-    const connCount = connectors.reduce((s,w)=> s + (lower.split(new RegExp('\\b'+w+'\\b','g')).length-1), 0);
-    const youCount = (lower.match(/\byou\b/g)||[]).length;
-    const weCount = (lower.match(/\bwe\b|\bour\b|\bus\b/g)||[]).length;
-    const hedges = ['maybe','might','could','sort of','kind of','perhaps','possibly','i think','i feel'];
-    const hedgeCount = hedges.reduce((s,h)=> s + (lower.split(new RegExp(h.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&'),'g')).length-1), 0);
-    const persuasiveVerbs = ['must','should','recommend','encourage','improve','achieve','increase','reduce','benefit','help','learn','try'];
-    const pvCount = persuasiveVerbs.reduce((s,w)=> s + (lower.split(new RegExp('\\b'+w+'\\b','g')).length-1), 0);
-    const unique = new Set(words.map(w=>w.replace(/[^a-z]/g,''))).size;
-    const avgSentLen = (txt.split(/[.!?]+/).filter(Boolean).map(s=>s.trim().split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b,0) || 0) / Math.max(1, (txt.split(/[.!?]+/).filter(Boolean).length));
-    return {wordCount, connCount, youCount, weCount, hedgeCount, pvCount, unique, avgSentLen};
+    const lower=(txt||'').toLowerCase(); const words=lower.split(/\s+/).filter(Boolean); const wordCount=words.length;
+    const connectors=['and','but','so','because','therefore','however','then','next','also']; const connCount=connectors.reduce((s,w)=>s+(lower.split(new RegExp('\\b'+w+'\\b','g')).length-1),0);
+    const youCount=(lower.match(/\byou\b/g)||[]).length; const weCount=(lower.match(/\bwe\b|\bour\b|\bus\b/g)||[]).length;
+    const hedges=['maybe','might','could','sort of','kind of','perhaps','possibly','i think','i feel']; const hedgeCount=hedges.reduce((s,h)=>s+(lower.split(new RegExp(h.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&'),'g')).length-1),0);
+    const persuasiveVerbs=['must','should','recommend','encourage','improve','achieve','increase','reduce','benefit','help','learn','try']; const pvCount=persuasiveVerbs.reduce((s,w)=>s+(lower.split(new RegExp('\\b'+w+'\\b','g')).length-1),0);
+    const unique=new Set(words.map(w=>w.replace(/[^a-z]/g,''))).size;
+    const avgSentLen=(txt.split(/[.!?]+/).filter(Boolean).map(s=>s.trim().split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b,0)||0)/Math.max(1,(txt.split(/[.!?]+/).filter(Boolean).length));
+    return {wordCount,connCount,youCount,weCount,hedgeCount,pvCount,unique,avgSentLen};
   }
 
   function computeDetailedSkills(metrics, transcript){
-    const t = textStatsForFlowAndEmpathy(transcript || '');
-    const clamp01 = v => Math.max(0, Math.min(100, Math.round(v)));
-
-    // Clarity & Structure
-    const paceFactor = (() => {
-      const w = metrics.wpm;
-      if (w < 80) return Math.round(100 * ((w - 40) / (110 - 40)));
-      return Math.round(100 * ((w - 80) / (160 - 80)));
-    })();
-    const fillersFactor = clamp01(100 - Math.min(100, metrics.fillerPerMin * 30));
-    const sentLenFactor = clamp01(100 - Math.max(0, (t.avgSentLen - 14) * 4));
-    const clarity = Math.round((paceFactor*0.35 + fillersFactor*0.45 + sentLenFactor*0.2));
-
-    // Logical Flow
-    const connectorDensity = Math.min(100, t.connCount / Math.max(1, t.wordCount) * 2000);
-    const flowPauseScore = clamp01(100 - Math.min(100, (metrics.pauseCount / Math.max(1,t.wordCount/15)) * 40));
-    const logicalFlow = Math.round(connectorDensity*0.6 + flowPauseScore*0.4);
-
-    // Confidence & Tone
-    const prosody = scoreProsody(metrics.pitchRange);
-    const hedgePenalty = clamp01(100 - Math.min(100, t.hedgeCount * 25));
-    const confidence = Math.round((prosody*0.45 + hedgePenalty*0.25 + (100 - Math.abs(metrics.wpm - 120)/1.2)*0.3));
-
-    // Empathy & Connection
-    const addr = Math.min(100, ( (t.youCount*2 + t.weCount*1.5) / Math.max(1,t.wordCount) ) * 2000);
-    const empathy = clamp01(addr);
-
-    // Persuasion & Influence
-    const pvScore = Math.min(100, (t.pvCount / Math.max(1,t.wordCount)) * 4000);
-    const persuasion = Math.round((pvScore*0.6 + (100 - t.hedgeCount*25)*0.4));
-
-    // Improvisation
-    const ttrPct = Math.round(metrics.ttr * 100);
-    const pausePenalty = clamp01(100 - Math.min(100, metrics.longestPause/50));
-    const improvisation = Math.round((ttrPct*0.6 + pausePenalty*0.4));
-
-    // Non-verbal Communication
-    const nonverbal = Math.round((prosody*0.6 + flowPauseScore*0.4));
-
-    return {
-      clarity: clamp01(clarity),
-      logicalFlow: clamp01(logicalFlow),
-      confidence: clamp01(confidence),
-      empathy: clamp01(empathy),
-      persuasion: clamp01(persuasion),
-      improvisation: clamp01(improvisation),
-      nonverbal: clamp01(nonverbal)
-    };
+    const t=textStatsForFlowAndEmpathy(transcript||''); const clamp01=v=>Math.max(0,Math.min(100,Math.round(v)));
+    const paceFactor=(function(){ const w=metrics.wpm; if(w<80) return Math.round(100*((w-40)/(110-40))); return Math.round(100*((w-80)/(160-80))); })();
+    const fillersFactor=clamp01(100-Math.min(100,metrics.fillerPerMin*30));
+    const sentLenFactor=clamp01(100-Math.max(0,(t.avgSentLen-14)*4));
+    const clarity=Math.round((paceFactor*0.35+fillersFactor*0.45+sentLenFactor*0.2));
+    const connectorDensity=Math.min(100,t.connCount/Math.max(1,t.wordCount)*2000);
+    const flowPauseScore=clamp01(100-Math.min(100,(metrics.pauseCount/Math.max(1,t.wordCount/15))*40));
+    const logicalFlow=Math.round(connectorDensity*0.6+flowPauseScore*0.4);
+    const prosody=scoreProsody(metrics.pitchRange); const hedgePenalty=clamp01(100-Math.min(100,t.hedgeCount*25));
+    const confidence=Math.round((prosody*0.45+hedgePenalty*0.25+(100-Math.abs(metrics.wpm-120)/1.2)*0.3));
+    const addr=Math.min(100,((t.youCount*2+t.weCount*1.5)/Math.max(1,t.wordCount))*2000); const empathy=clamp01(addr);
+    const pvScore=Math.min(100,(t.pvCount/Math.max(1,t.wordCount))*4000); const persuasion=Math.round((pvScore*0.6+(100-t.hedgeCount*25)*0.4));
+    const ttrPct=Math.round(metrics.ttr*100); const pausePenalty=clamp01(100-Math.min(100,metrics.longestPause/50)); const improvisation=Math.round((ttrPct*0.6+pausePenalty*0.4));
+    const nonverbal=Math.round((prosody*0.6+flowPauseScore*0.4));
+    return {clarity:clamp01(clarity),logicalFlow:clamp01(logicalFlow),confidence:clamp01(confidence),empathy:clamp01(empathy),persuasion:clamp01(persuasion),improvisation:clamp01(improvisation),nonverbal:clamp01(nonverbal)};
   }
 
-  function personalizedTipsFromSkills(skills, metrics, transcript){
-    const tips = [];
-    const mapping = {
-      clarity: val => {
-        if(val>80) return 'Clarity strong. Keep sentence length varied and emphasize keywords.';
-        if(val>60) return 'Shorten long sentences and reduce fillers. Practice 1-topic, 1-paragraph responses.';
-        if(val>40) return 'Work on clear sentence structure: use short topic sentences and avoid run-ons.';
-        return 'Read sentences aloud slowly. Break ideas into short, clear statements and remove filler words.';
-      },
-      logicalFlow: val => {
-        if(val>80) return 'Logical flow is solid. Use brief transitions to guide listeners.';
-        if(val>60) return 'Add clearer connectors: start sentences with "next", "so", or "therefore" to guide flow.';
-        if(val>40) return 'Practice sequencing: state the point, then give two supporting lines, then conclude.';
-        return 'Plan a mini-structure: opening, 1–2 supporting points, closing. Use clear connectors.';
-      },
-      confidence: val => {
-        if(val>80) return 'Confident tone. Keep using varied prosody and firm statements.';
-        if(val>60) return 'Work on stronger verbs and reduce hedging. Emphasize keywords with slight pitch rise.';
-        if(val>40) return 'Avoid hedges; replace "maybe" with action verbs. Practice speaking with a slightly louder, stable voice.';
-        return 'Practice assertive phrasing and reduce "I think"/"maybe". Record and replay focusing on steady pitch.';
-      },
-      empathy: val => {
-        if(val>80) return 'Good listener cues and inclusive language.';
-        if(val>60) return 'Try addressing the listener more: use "you" or "we" to engage the audience.';
-        if(val>40) return 'Add one or two direct phrases to show listener relevance: "you might notice..."';
-        return 'Use audience-focused phrases and ask rhetorical questions to build connection.';
-      },
-      persuasion: val => {
-        if(val>80) return 'Persuasive language strong. Keep using action verbs and clear benefits.';
-        if(val>60) return 'Add a clearer call-to-action or benefit statement to increase influence.';
-        if(val>40) return 'Use stronger verbs and state benefits quickly: "This helps because..."';
-        return 'Structure arguments as: problem → solution → benefit. Use action verbs and avoid hedging.';
-      },
-      improvisation: val => {
-        if(val>80) return 'Great spontaneity. Keep varying vocabulary under pressure.';
-        if(val>60) return 'Try short practice drills to increase natural variation in phrasing.';
-        if(val>40) return 'Practice paraphrasing prompts quickly; expand vocabulary by using synonyms.';
-        return 'Do improvisation drills: describe random objects for 30s without planning to build spontaneity.';
-      },
-      nonverbal: val => {
-        if(val>80) return 'Strong vocal dynamics and pause control.';
-        if(val>60) return 'Work on placing short, deliberate pauses and small pitch changes to emphasize points.';
-        if(val>40) return 'Practice pitch modulation exercises (rise on key words, fall at sentence end).';
-        return 'Use short practiced exercises: vary pitch on a sentence and time short controlled pauses.';
-      }
+  function personalizedTipsFromSkills(skills){
+    const tips=[]; const mapping={
+      clarity: v => v>80?'Clarity strong. Keep sentence length varied and emphasize keywords.':v>60?'Shorten long sentences and reduce fillers. Practice 1-topic responses.':v>40?'Work on clear structure: use short topic sentences.':'Read sentences aloud slowly. Break ideas into short clear statements and remove fillers.',
+      logicalFlow: v => v>80?'Flow solid. Use brief transitions.':v>60?'Add connectors: start sentences with "next", "so", or "therefore".':v>40?'Practice sequencing: point, support, conclude.':'Plan a mini-structure: opening, 1–2 points, closing.',
+      confidence: v => v>80?'Confident tone. Keep varied prosody.':v>60?'Use stronger verbs and reduce hedging. Emphasize keywords.':v>40?'Avoid hedges; use action verbs. Practice with a stable voice.':'Practice assertive phrasing and reduce "I think"/"maybe".',
+      empathy: v => v>80?'Good listener cues.':'Try addressing listener more: use "you" or "we".':v>40?'Add direct phrases showing relevance.':'Use audience-focused phrases and ask rhetorical questions.',
+      persuasion: v => v>80?'Persuasive language strong. Keep action verbs.':v>60?'Add clear call-to-action and benefits.':v>40?'Use stronger verbs and state benefits quickly.':'Structure: problem→solution→benefit. Use action verbs.',
+      improvisation: v => v>80?'Great spontaneity. Keep varying vocabulary.':v>60?'Do short drills to increase variation.':v>40?'Practice paraphrasing prompts quickly.':'Do 30s improv drills describing objects without planning.',
+      nonverbal: v => v>80?'Strong vocal dynamics and pause control.':v>60?'Place short, deliberate pauses and small pitch changes.':v>40?'Practice pitch modulation (rise on key words).':'Vocal exercises: vary pitch and time controlled pauses.'
     };
-
-    const catEntries = Object.entries(skills).sort((a,b)=>a[1]-b[1]);
-    for(let i=0;i<5;i++){
-      const [k,v] = catEntries[i];
-      tips.push(mapping[k](v));
-    }
+    const cat=Object.entries(skills).sort((a,b)=>a[1]-b[1]);
+    for(let i=0;i<5;i++){ const [k,v]=cat[i]; tips.push(mapping[k](v)); }
     return tips;
   }
 
   function computeFullProfileAndScore(metrics, transcript){
-    const skills = computeDetailedSkills(metrics, transcript);
-    const keys = Object.keys(skills);
-    const overall = Math.round(keys.reduce((s,k)=>s+skills[k],0)/keys.length);
-    const tips = personalizedTipsFromSkills(skills, metrics, transcript);
-    const weakest = Object.entries(skills).sort((a,b)=>a[1]-b[1])[0][0];
-    const oneLinerMap = {
-      clarity: 'Work on clarity: shorten sentences and reduce fillers.',
-      logicalFlow: 'Improve sequencing: add clearer transitions between ideas.',
-      confidence: 'Boost confidence: cut hedges and use stronger verbs.',
-      empathy: 'Build connection: address the listener and show relevance.',
-      persuasion: 'Sharpen influence: state benefits and use action language.',
-      improvisation: 'Increase spontaneity: practice quick paraphrase drills.',
-      nonverbal: 'Improve vocal control: use measured pauses and controlled pitch.'
-    };
+    const skills=computeDetailedSkills(metrics, transcript);
+    const keys=Object.keys(skills);
+    const overall=Math.round(keys.reduce((s,k)=>s+skills[k],0)/keys.length);
+    const tips=personalizedTipsFromSkills(skills);
+    const weakest=Object.entries(skills).sort((a,b)=>a[1]-b[1])[0][0];
+    const oneLinerMap={clarity:'Work on clarity: shorten sentences and reduce fillers.',logicalFlow:'Improve sequencing: add clearer transitions.',confidence:'Boost confidence: cut hedges and use stronger verbs.',empathy:'Build connection: address the listener.',persuasion:'Sharpen influence: state benefits and use action language.',improvisation:'Increase spontaneity: do quick paraphrase drills.',nonverbal:'Improve vocal control: measured pauses and controlled pitch.'};
     return {overall, skills, oneLiner: oneLinerMap[weakest], tips};
   }
 
   function showScorecard(obj){
-    let el = document.getElementById('scorecard');
-    if(!el){
-      el = document.createElement('div');
-      el.id = 'scorecard';
-      el.style.marginTop = '12px';
-      el.className = 'card';
-      el.style.padding = '12px';
-      const parent = document.querySelector('.card'); // main card
-      parent.insertBefore(el, parent.querySelector('.suggestion'));
-    }
-    el.innerHTML = `<strong>Score: ${obj.overall}/100</strong>
-      <div class="small" style="margin-top:6px">${obj.oneLiner}</div>
-      <div style="margin-top:10px"><strong>Top 5 improvements</strong>
-        <ol style="margin-top:6px;padding-left:18px">${obj.tips.map(t=>`<li style="margin-bottom:6px">${t}</li>`).join('')}</ol>
-      </div>
-      <div style="margin-top:8px" class="small">Component scores shown below.</div>
-    `;
+    let el=document.getElementById('scorecard'); if(!el){ el=document.createElement('div'); el.id='scorecard'; el.style.marginTop='12px'; el.className='card'; el.style.padding='12px'; const parent=document.querySelector('.card'); parent.insertBefore(el,parent.querySelector('.suggestion')); }
+    el.innerHTML=`<strong>Score: ${obj.overall}/100</strong><div class="small" style="margin-top:6px">${obj.oneLiner}</div><div style="margin-top:10px"><strong>Top 5 improvements</strong><ol style="margin-top:6px;padding-left:18px">${obj.tips.map(t=>`<li style="margin-bottom:6px">${t}</li>`).join('')}</ol></div><div style="margin-top:8px" class="small">Component scores shown below.</div>`;
   }
 
-  function showFullProfile(profile){
-    showScorecard(profile);
-    let el = document.getElementById('profileBreakdown');
-    if(!el){
-      el = document.createElement('div'); el.id='profileBreakdown'; el.style.marginTop='10px';
-      const parent = document.querySelector('.card'); parent.insertBefore(el, parent.querySelector('.suggestion'));
-    }
-    const rows = Object.entries(profile.skills).map(([k,v])=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px"><div class="small">${toTitleCase(k)}</div><div style="font-weight:700">${v}%</div></div>`).join('');
-    el.innerHTML = `<div style="margin-top:8px"><strong>Skill breakdown</strong><div style="margin-top:6px">${rows}</div></div>`;
-  }
+  function showFullProfile(profile){ showScorecard(profile); let el=document.getElementById('profileBreakdown'); if(!el){ el=document.createElement('div'); el.id='profileBreakdown'; el.style.marginTop='10px'; const parent=document.querySelector('.card'); parent.insertBefore(el,parent.querySelector('.suggestion')); } const rows=Object.entries(profile.skills).map(([k,v])=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px"><div class="small">${toTitleCase(k)}</div><div style="font-weight:700">${v}%</div></div>`).join(''); el.innerHTML=`<div style="margin-top:8px"><strong>Skill breakdown</strong><div style="margin-top:6px">${rows}</div></div>`; }
   function toTitleCase(s){ return s.replace(/([A-Z])/g,' $1').replace(/^./,str=>str.toUpperCase()); }
 
-  // ===== End skill profile functions =====
+  // user & tabs
+  let currentUser = localStorage.getItem('aurate_user') || '';
+  function setUser(name){ currentUser=(name||'').trim(); if(currentUser) localStorage.setItem('aurate_user', currentUser); else localStorage.removeItem('aurate_user'); userNameInput.value=currentUser||''; profileNameDisplay.textContent=currentUser||'—'; }
+  $('saveNameBtn').addEventListener('click', ()=>{ setUser(userNameInput.value); alert('Name saved.'); });
+  $('changeNameBtn').addEventListener('click', ()=>{ userNameInput.focus(); tabSwitch('practice'); });
+  $('clearAllBtn').addEventListener('click', ()=>{ if(confirm('Delete all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); alert('Cleared.'); } });
+  setUser(currentUser);
+
+  const tabPractice = $('tabPractice'), tabProfile = $('tabProfile'), tabDocs = $('tabDocs');
+  tabPractice.addEventListener('click', ()=>tabSwitch('practice')); tabProfile.addEventListener('click', ()=>tabSwitch('profile')); tabDocs.addEventListener('click', ()=>tabSwitch('docs'));
+  function tabSwitch(name){
+    const profile=$('profilePanel'), docs=$('docsPanel'), practice=$('practiceMain');
+    if(name==='practice'){ profile.style.display='none'; docs.style.display='none'; practice.style.display='block'; tabPractice.classList.add('tab-active'); tabProfile.classList.remove('tab-active'); tabDocs.classList.remove('tab-active'); }
+    if(name==='profile'){ profile.style.display='block'; docs.style.display='none'; practice.style.display='block'; tabProfile.classList.add('tab-active'); tabPractice.classList.remove('tab-active'); tabDocs.classList.remove('tab-active'); }
+    if(name==='docs'){ profile.style.display='none'; docs.style.display='block'; practice.style.display='block'; tabDocs.classList.add('tab-active'); tabPractice.classList.remove('tab-active'); tabProfile.classList.remove('tab-active'); }
+  }
+  tabSwitch('practice');
 
   function saveSession(){
-    const now = new Date().toISOString();
-    const txt = transcriptEl.textContent.trim();
-    if (!txt){ alert('No transcript to save.'); return; }
-    const speakingMs = Math.max(1, performance.now() - (startTime || performance.now()));
-    const m = computeMetricsFromText(txt, speakingMs);
-    const session = {id: now, prompt: promptEl.value, transcript: txt, metrics: m, date: now};
-
-    // compute detailed profile and attach
-    const profile = computeFullProfileAndScore(m, txt);
-    session.scorecard = profile;
-
-    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr.unshift(session); localStorage.setItem('orator_history', JSON.stringify(arr));
-    refreshHistory(); saveBtn.disabled=true;
-
-    // show the profile for immediate feedback
-    showFullProfile(profile);
+    const now=new Date().toISOString(); const txt=transcriptEl.textContent.trim(); if(!txt){ alert('No transcript to save.'); return; }
+    const speakingMs=Math.max(1, performance.now() - (startTime || performance.now())); const m=computeMetricsFromText(txt, speakingMs);
+    const session={id:now, prompt:promptEl.value, userName:currentUser||'Anonymous', transcript:txt, metrics:m, date:now};
+    const profile=computeFullProfileAndScore(m, txt); session.scorecard=profile;
+    const arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); arr.unshift(session); localStorage.setItem('orator_history', JSON.stringify(arr));
+    refreshHistory(); saveBtn.disabled=true; showFullProfile(profile);
   }
 
   function refreshHistory(){
-    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]');
-    if (!arr.length) { historyEl.innerHTML = '<div class="small">No sessions yet.</div>'; return; }
-    const rows = arr.map(s=>{
-      const scoreText = s.scorecard ? ` • Score: ${s.scorecard.overall}` : '';
-      return `<div style="padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,0.02)">
-        <div style="display:flex;justify-content:space-between">
-          <div><strong>${s.prompt}</strong><div class="small">${new Date(s.date).toLocaleString()}</div></div>
-          <div style="text-align:right">
-            <div class="small">WPM: ${s.metrics.wpm}${scoreText}</div>
-            <div style="margin-top:6px"><button class="smallBtn" data-id="${s.id}" onclick="replaySession('${s.id}')">Replay</button> <button class="smallBtn" data-id="${s.id}" onclick="deleteSession('${s.id}')">Delete</button></div>
-          </div>
-        </div>
-        <div style="margin-top:6px;font-size:13px">${escapeHtmlPreview(s.transcript)}</div>
-      </div>`;
-    }).join('');
+    const arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); if(!arr.length){ historyEl.innerHTML='<div class="small">No sessions yet.</div>'; return; }
+    const rows=arr.map(s=>{ const scoreText=s.scorecard?` • Score: ${s.scorecard.overall}`:''; return `<div style="padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,0.02)"><div style="display:flex;justify-content:space-between"><div><strong>${s.userName? s.userName + ' — ' : ''}${s.prompt}</strong><div class="small">${new Date(s.date).toLocaleString()}</div></div><div style="text-align:right"><div class="small">WPM: ${s.metrics.wpm}${scoreText}</div><div style="margin-top:6px"><button class="smallBtn" data-id="${s.id}" onclick="replaySession('${s.id}')">Replay</button> <button class="smallBtn" data-id="${s.id}" onclick="deleteSession('${s.id}')">Delete</button></div></div></div><div style="margin-top:6px;font-size:13px">${escapeHtmlPreview(s.transcript)}</div></div>`; }).join('');
     historyEl.innerHTML = rows;
   }
+  window.replaySession = function(id){ const arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); const s=arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent=s.transcript; renderMetrics(s.metrics); if(s.scorecard) showFullProfile(s.scorecard); }
+  window.deleteSession = function(id){ let arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); arr=arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); if(document.getElementById('profileBreakdown')) document.getElementById('profileBreakdown').remove(); }
 
-  window.replaySession = function(id){
-    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); const s = arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); if(s.scorecard) showFullProfile(s.scorecard); }
-  window.deleteSession = function(id){ let arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); if(document.getElementById('profileBreakdown')) document.getElementById('profileBreakdown').remove(); }
+  function exportCSV(){ const arr=JSON.parse(localStorage.getItem('orator_history')||'[]'); if(!arr.length){ alert('No sessions to export.'); return; } const header=['date','user','prompt','words','wpm','fillers','pauses','longestPause','ttr','pitchRange','score','transcript']; const lines=[header.join(',')]; arr.forEach(s=>{ const row=[s.date,`"${s.userName.replace(/"/g,'""')}"`,`"${s.prompt.replace(/"/g,'""')}"`,s.metrics.words,s.metrics.wpm,s.metrics.fillerCount,s.metrics.pauseCount,Math.round(s.metrics.longestPause),s.metrics.ttr,s.metrics.pitchRange,(s.scorecard? s.scorecard.overall:''),`"${s.transcript.replace(/"/g,'""') }"`]; lines.push(row.join(',')); }); const blob=new Blob([lines.join('\n')], {type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='orator_history.csv'; a.click(); URL.revokeObjectURL(url); }
 
-  function escapeHtmlPreview(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
-
-  function exportCSV(){
-    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); if (!arr.length){ alert('No sessions to export.'); return; }
-    const header = ['date','prompt','words','wpm','fillers','pauses','longestPause','ttr','pitchRange','score','transcript'];
-    const lines = [header.join(',')];
-    arr.forEach(s=>{ const row=[s.date,`"${s.prompt.replace(/"/g,'""')}"`,s.metrics.words,s.metrics.wpm,s.metrics.fillerCount,s.metrics.pauseCount,Math.round(s.metrics.longestPause),s.metrics.ttr,s.metrics.pitchRange,(s.scorecard? s.scorecard.overall:''),`"${s.transcript.replace(/"/g,'""') }"`]; lines.push(row.join(',')); });
-    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
-    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='orator_history.csv'; a.click(); URL.revokeObjectURL(url);
-  }
-
-  document.addEventListener('click', e=>{
-    if (e.target.matches('.smallBtn')){
-      const id = e.target.getAttribute('data-id'); if (e.target.textContent.trim()==='Replay') replaySession(id); else deleteSession(id);
-    }
-  });
-
-  $('demoFill').addEventListener('click', ()=>{
-    const sample = 'Hello, my name is Alex. I work on simple products that help people learn. In this short pitch I will show why our tool helps learners stay excited. Thank you.';
-    transcriptEl.textContent = sample; startTime = performance.now() - 35000; computeLiveMetrics(); saveBtn.disabled=false; });
-
+  // demo & buttons
+  $('demoFill').addEventListener('click', ()=>{ const sample='Hello, my name is Alex. I work on simple products that help people learn. In this short pitch I will show why our tool helps learners stay excited. Thank you.'; transcriptEl.textContent = sample; startTime = performance.now() - 35000; computeLiveMetrics(); saveBtn.disabled=false; });
   startBtn.addEventListener('click', ()=>{ startRecognition(); startTime = performance.now(); });
   stopBtn.addEventListener('click', ()=>{ stopRecognition(); });
   saveBtn.addEventListener('click', ()=>{ saveSession(); });
   exportBtn.addEventListener('click', ()=>{ exportCSV(); });
-  $('clearHistory').addEventListener('click', ()=>{ if (confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); if(document.getElementById('profileBreakdown')) document.getElementById('profileBreakdown').remove(); } });
+  $('clearHistory').addEventListener('click', ()=>{ if(confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); if(document.getElementById('profileBreakdown')) document.getElementById('profileBreakdown').remove(); } });
 
   transcriptEl.addEventListener('input', ()=>{ saveBtn.disabled = transcriptEl.textContent.trim().length===0; computeLiveMetrics(); });
 
   refreshHistory();
-  if (!supportsSpeechRecognition()){
-    statusEl.textContent = '● speech API not available — paste transcript manually'; startBtn.disabled = true; stopBtn.disabled = true;
-  }
+  if(!supportsSpeechRecognition()){ statusEl.textContent='● speech API not available — paste transcript manually'; startBtn.disabled=true; stopBtn.disabled=true; }
 
-  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeHtmlPreview(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+  // THEME TOGGLE (persisted)
+  (function(){
+    const btn = $('themeToggle'); const root = document.documentElement;
+    const saved = localStorage.getItem('aurate_theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'dark');
+    function apply(t){ root.setAttribute('data-theme', t); localStorage.setItem('aurate_theme', t); if(btn) btn.textContent = t==='dark' ? 'Light mode' : 'Dark mode'; }
+    apply(saved);
+    if(btn) btn.addEventListener('click', ()=> apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+  })();
   </script>
 </body>
 </html>
