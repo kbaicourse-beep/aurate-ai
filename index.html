@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <img src="logo.png" alt="Aurate logo" class="logo-img" style="width:72px;height:48px;object-fit:contain;border-radius:8px" />
   <title>Aurate — Orator Trainer (Demo)</title>
   <style>
     :root{--bg:#0f1724;--card:#0b1220;--teal:#06b6d4;--gold:#d7b36a;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
@@ -28,13 +27,14 @@
     .suggestion{background:rgba(6,182,212,0.08);color:var(--teal);padding:8px;border-radius:8px;margin-top:10px}
     .small{font-size:12px;color:var(--muted)}
     .smallBtn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px 8px;border-radius:6px;font-size:12px}
+    #scorecard{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:8px; padding:12px; margin-top:12px}
+    #profileBreakdown .small{color:#cfe8ff}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div class="brand">
-        <!-- Put your logo file named logo.png in the same folder as this HTML -->
         <img src="logo.png" alt="Aurate logo" class="logo-img" />
         <div>
           <h1>Aurate</h1>
@@ -238,46 +238,10 @@
 
   function escapeRegExp(string){ return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
 
-  // ===== Aurate: scorecard generator =====
+  // ===== Skill profile & personalized tips (inserted) =====
+
   function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, Math.round(v))); }
 
-  // normalize WPM -> Pace score (ideal 110-150)
-  function scorePace(wpm){
-    if(wpm <= 60) return Math.round((wpm/60)*40);
-    if(wpm <= 110) return Math.round(40 + ((wpm-60)/50)*30);
-    if(wpm <= 150) return Math.round(70 + ((wpm-110)/40)*20);
-    if(wpm <= 190) return Math.round(90 - ((wpm-150)/40)*40);
-    return 50;
-  }
-
-  // fillers per minute -> Fillers score (ideal 0-1)
-  function scoreFillers(fpm){
-    if(fpm <= 0.5) return 100;
-    if(fpm <= 1.5) return Math.round(100 - (fpm-0.5)*40);
-    if(fpm <= 4) return Math.round(60 - (fpm-1.5)*15);
-    return 10;
-  }
-
-  // pauses count -> Pauses score (fewer is better)
-  function scorePauses(pauseCount, words){
-    const expected = Math.max(1, words/30);
-    const ratio = pauseCount / expected;
-    if(ratio <= 0.8) return 100;
-    if(ratio <= 1.2) return Math.round(100 - (ratio-0.8)*125);
-    if(ratio <= 2.5) return Math.round(50 - (ratio-1.2)*40);
-    return 10;
-  }
-
-  // type-token ratio -> Lexical variety (higher is better)
-  function scoreTTR(ttr){
-    const v = ttr*100;
-    if(v >= 55) return 100;
-    if(v >= 40) return Math.round(70 + (v-40)*(30/15));
-    if(v >= 20) return Math.round(40 + (v-20)*(30/20));
-    return Math.round(20 + v);
-  }
-
-  // pitchRange (Hz) -> Prosody score
   function scoreProsody(rangeHz){
     if(rangeHz <= 40) return 30;
     if(rangeHz <= 120) return Math.round(30 + (rangeHz-40)*(20/80));
@@ -286,70 +250,145 @@
     return 40;
   }
 
-  function computeScoreAndFeedback(metrics){
-    // metrics: {words,wpm,fillerCount,fillerPerMin,pauseCount,longestPause,ttr,pitchRange}
-    const pPace = clamp(scorePace(metrics.wpm));
-    const pFill = clamp(scoreFillers(Number(metrics.fillerPerMin)));
-    const pPause = clamp(scorePauses(metrics.pauseCount, metrics.words));
-    const pTTR = clamp(scoreTTR(Number(metrics.ttr)));
-    const pPros = clamp(scoreProsody(Number(metrics.pitchRange)));
+  function textStatsForFlowAndEmpathy(txt){
+    const lower = (txt||'').toLowerCase();
+    const words = lower.split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
+    const connectors = ['and','but','so','because','therefore','however','then','next','also','so'];
+    const connCount = connectors.reduce((s,w)=> s + (lower.split(new RegExp('\\b'+w+'\\b','g')).length-1), 0);
+    const youCount = (lower.match(/\byou\b/g)||[]).length;
+    const weCount = (lower.match(/\bwe\b|\bour\b|\bus\b/g)||[]).length;
+    const hedges = ['maybe','might','could','sort of','kind of','perhaps','possibly','i think','i feel'];
+    const hedgeCount = hedges.reduce((s,h)=> s + (lower.split(new RegExp(h.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&'),'g')).length-1), 0);
+    const persuasiveVerbs = ['must','should','recommend','encourage','improve','achieve','increase','reduce','benefit','help','learn','try'];
+    const pvCount = persuasiveVerbs.reduce((s,w)=> s + (lower.split(new RegExp('\\b'+w+'\\b','g')).length-1), 0);
+    const unique = new Set(words.map(w=>w.replace(/[^a-z]/g,''))).size;
+    const avgSentLen = (txt.split(/[.!?]+/).filter(Boolean).map(s=>s.trim().split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b,0) || 0) / Math.max(1, (txt.split(/[.!?]+/).filter(Boolean).length));
+    return {wordCount, connCount, youCount, weCount, hedgeCount, pvCount, unique, avgSentLen};
+  }
 
-    const overall = Math.round((pPace + pFill + pPause + pTTR + pPros) / 5);
+  function computeDetailedSkills(metrics, transcript){
+    const t = textStatsForFlowAndEmpathy(transcript || '');
+    const clamp01 = v => Math.max(0, Math.min(100, Math.round(v)));
 
-    let oneLiner = '';
-    if(overall >= 85) oneLiner = 'Strong delivery: clear, controlled, and engaging.';
-    else if(overall >= 70) oneLiner = 'Good delivery with room to polish pacing and small habits.';
-    else if(overall >= 50) oneLiner = 'Developing: focus on pace, reduce fillers, and add vocal variety.';
-    else oneLiner = 'Needs work: reduce filler words, raise energy, and structure sentences more clearly.';
+    // Clarity & Structure
+    const paceFactor = (() => {
+      const w = metrics.wpm;
+      if (w < 80) return Math.round(100 * ((w - 40) / (110 - 40)));
+      return Math.round(100 * ((w - 80) / (160 - 80)));
+    })();
+    const fillersFactor = clamp01(100 - Math.min(100, metrics.fillerPerMin * 30));
+    const sentLenFactor = clamp01(100 - Math.max(0, (t.avgSentLen - 14) * 4));
+    const clarity = Math.round((paceFactor*0.35 + fillersFactor*0.45 + sentLenFactor*0.2));
 
-    const tips = [];
-    const components = [
-      {name:'Pace', score:pPace, detail:`WPM: ${metrics.wpm}`},
-      {name:'Fillers', score:pFill, detail:`Fillers/min: ${metrics.fillerPerMin}`},
-      {name:'Pauses', score:pPause, detail:`Pauses: ${metrics.pauseCount}`},
-      {name:'Variety', score:pTTR, detail:`TTR: ${metrics.ttr}`},
-      {name:'Prosody', score:pPros, detail:`Pitch range: ${metrics.pitchRange}Hz`}
-    ];
-    components.sort((a,b)=>a.score-b.score);
+    // Logical Flow
+    const connectorDensity = Math.min(100, t.connCount / Math.max(1, t.wordCount) * 2000);
+    const flowPauseScore = clamp01(100 - Math.min(100, (metrics.pauseCount / Math.max(1,t.wordCount/15)) * 40));
+    const logicalFlow = Math.round(connectorDensity*0.6 + flowPauseScore*0.4);
 
-    function tipFor(comp){
-      if(comp.name==='Pace'){
-        if(metrics.wpm < 90) return 'Speed up slightly: aim for 110–140 WPM. Practice reading short paragraphs with a metronome.';
-        if(metrics.wpm > 160) return 'Slow down: add 300–500ms pauses at commas and sentence ends to improve clarity.';
-        return 'Maintain your pace and add emphasis on key words to increase engagement.';
-      }
-      if(comp.name==='Fillers'){
-        if(metrics.fillerPerMin > 3) return 'Reduce filler words: pause instead of saying “um/like”. Practice silent pauses.';
-        if(metrics.fillerPerMin > 1.2) return 'Work on filler awareness: record and note your top 3 fillers and avoid them.';
-        return 'Good control of fillers — keep practicing mindful pauses.';
-      }
-      if(comp.name==='Pauses'){
-        if(metrics.pauseCount > Math.max(3, metrics.words/20)) return 'Reduce long unnecessary pauses. Use linking phrases if you lose the thread.';
-        return 'Pauses are natural; align them with punctuation to improve flow.';
-      }
-      if(comp.name==='Variety'){
-        return 'Increase lexical variety: replace repeated words, use short synonyms, and vary sentence openings.';
-      }
-      if(comp.name==='Prosody'){
-        if(metrics.pitchRange < 80) return 'Add vocal variety: emphasize key phrases with gentle pitch changes and contrast.';
-        if(metrics.pitchRange > 450) return 'Control pitch variation: smooth modulation to avoid sounding erratic.';
-        return 'Good vocal dynamics; keep using pitch to highlight important words.';
-      }
-      return '';
-    }
+    // Confidence & Tone
+    const prosody = scoreProsody(metrics.pitchRange);
+    const hedgePenalty = clamp01(100 - Math.min(100, t.hedgeCount * 25));
+    const confidence = Math.round((prosody*0.45 + hedgePenalty*0.25 + (100 - Math.abs(metrics.wpm - 120)/1.2)*0.3));
 
-    for(let i=0;i<5;i++){
-      const comp = components[i % components.length];
-      const candidate = tipFor(comp);
-      if(!tips.includes(candidate)) tips.push(candidate);
-    }
+    // Empathy & Connection
+    const addr = Math.min(100, ( (t.youCount*2 + t.weCount*1.5) / Math.max(1,t.wordCount) ) * 2000);
+    const empathy = clamp01(addr);
+
+    // Persuasion & Influence
+    const pvScore = Math.min(100, (t.pvCount / Math.max(1,t.wordCount)) * 4000);
+    const persuasion = Math.round((pvScore*0.6 + (100 - t.hedgeCount*25)*0.4));
+
+    // Improvisation
+    const ttrPct = Math.round(metrics.ttr * 100);
+    const pausePenalty = clamp01(100 - Math.min(100, metrics.longestPause/50));
+    const improvisation = Math.round((ttrPct*0.6 + pausePenalty*0.4));
+
+    // Non-verbal Communication
+    const nonverbal = Math.round((prosody*0.6 + flowPauseScore*0.4));
 
     return {
-      overall,
-      components:{pace:pPace, fillers:pFill, pauses:pPause, variety:pTTR, prosody:pPros},
-      oneLiner,
-      tips
+      clarity: clamp01(clarity),
+      logicalFlow: clamp01(logicalFlow),
+      confidence: clamp01(confidence),
+      empathy: clamp01(empathy),
+      persuasion: clamp01(persuasion),
+      improvisation: clamp01(improvisation),
+      nonverbal: clamp01(nonverbal)
     };
+  }
+
+  function personalizedTipsFromSkills(skills, metrics, transcript){
+    const tips = [];
+    const mapping = {
+      clarity: val => {
+        if(val>80) return 'Clarity strong. Keep sentence length varied and emphasize keywords.';
+        if(val>60) return 'Shorten long sentences and reduce fillers. Practice 1-topic, 1-paragraph responses.';
+        if(val>40) return 'Work on clear sentence structure: use short topic sentences and avoid run-ons.';
+        return 'Read sentences aloud slowly. Break ideas into short, clear statements and remove filler words.';
+      },
+      logicalFlow: val => {
+        if(val>80) return 'Logical flow is solid. Use brief transitions to guide listeners.';
+        if(val>60) return 'Add clearer connectors: start sentences with "next", "so", or "therefore" to guide flow.';
+        if(val>40) return 'Practice sequencing: state the point, then give two supporting lines, then conclude.';
+        return 'Plan a mini-structure: opening, 1–2 supporting points, closing. Use clear connectors.';
+      },
+      confidence: val => {
+        if(val>80) return 'Confident tone. Keep using varied prosody and firm statements.';
+        if(val>60) return 'Work on stronger verbs and reduce hedging. Emphasize keywords with slight pitch rise.';
+        if(val>40) return 'Avoid hedges; replace "maybe" with action verbs. Practice speaking with a slightly louder, stable voice.';
+        return 'Practice assertive phrasing and reduce "I think"/"maybe". Record and replay focusing on steady pitch.';
+      },
+      empathy: val => {
+        if(val>80) return 'Good listener cues and inclusive language.';
+        if(val>60) return 'Try addressing the listener more: use "you" or "we" to engage the audience.';
+        if(val>40) return 'Add one or two direct phrases to show listener relevance: "you might notice..."';
+        return 'Use audience-focused phrases and ask rhetorical questions to build connection.';
+      },
+      persuasion: val => {
+        if(val>80) return 'Persuasive language strong. Keep using action verbs and clear benefits.';
+        if(val>60) return 'Add a clearer call-to-action or benefit statement to increase influence.';
+        if(val>40) return 'Use stronger verbs and state benefits quickly: "This helps because..."';
+        return 'Structure arguments as: problem → solution → benefit. Use action verbs and avoid hedging.';
+      },
+      improvisation: val => {
+        if(val>80) return 'Great spontaneity. Keep varying vocabulary under pressure.';
+        if(val>60) return 'Try short practice drills to increase natural variation in phrasing.';
+        if(val>40) return 'Practice paraphrasing prompts quickly; expand vocabulary by using synonyms.';
+        return 'Do improvisation drills: describe random objects for 30s without planning to build spontaneity.';
+      },
+      nonverbal: val => {
+        if(val>80) return 'Strong vocal dynamics and pause control.';
+        if(val>60) return 'Work on placing short, deliberate pauses and small pitch changes to emphasize points.';
+        if(val>40) return 'Practice pitch modulation exercises (rise on key words, fall at sentence end).';
+        return 'Use short practiced exercises: vary pitch on a sentence and time short controlled pauses.';
+      }
+    };
+
+    const catEntries = Object.entries(skills).sort((a,b)=>a[1]-b[1]);
+    for(let i=0;i<5;i++){
+      const [k,v] = catEntries[i];
+      tips.push(mapping[k](v));
+    }
+    return tips;
+  }
+
+  function computeFullProfileAndScore(metrics, transcript){
+    const skills = computeDetailedSkills(metrics, transcript);
+    const keys = Object.keys(skills);
+    const overall = Math.round(keys.reduce((s,k)=>s+skills[k],0)/keys.length);
+    const tips = personalizedTipsFromSkills(skills, metrics, transcript);
+    const weakest = Object.entries(skills).sort((a,b)=>a[1]-b[1])[0][0];
+    const oneLinerMap = {
+      clarity: 'Work on clarity: shorten sentences and reduce fillers.',
+      logicalFlow: 'Improve sequencing: add clearer transitions between ideas.',
+      confidence: 'Boost confidence: cut hedges and use stronger verbs.',
+      empathy: 'Build connection: address the listener and show relevance.',
+      persuasion: 'Sharpen influence: state benefits and use action language.',
+      improvisation: 'Increase spontaneity: practice quick paraphrase drills.',
+      nonverbal: 'Improve vocal control: use measured pauses and controlled pitch.'
+    };
+    return {overall, skills, oneLiner: oneLinerMap[weakest], tips};
   }
 
   function showScorecard(obj){
@@ -368,11 +407,23 @@
       <div style="margin-top:10px"><strong>Top 5 improvements</strong>
         <ol style="margin-top:6px;padding-left:18px">${obj.tips.map(t=>`<li style="margin-bottom:6px">${t}</li>`).join('')}</ol>
       </div>
-      <div style="margin-top:8px" class="small">Component scores: Pace ${obj.components.pace}, Fillers ${obj.components.fillers}, Pauses ${obj.components.pauses}, Variety ${obj.components.variety}, Prosody ${obj.components.prosody}</div>
+      <div style="margin-top:8px" class="small">Component scores shown below.</div>
     `;
   }
 
-  // ===== End scorecard functions =====
+  function showFullProfile(profile){
+    showScorecard(profile);
+    let el = document.getElementById('profileBreakdown');
+    if(!el){
+      el = document.createElement('div'); el.id='profileBreakdown'; el.style.marginTop='10px';
+      const parent = document.querySelector('.card'); parent.insertBefore(el, parent.querySelector('.suggestion'));
+    }
+    const rows = Object.entries(profile.skills).map(([k,v])=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px"><div class="small">${toTitleCase(k)}</div><div style="font-weight:700">${v}%</div></div>`).join('');
+    el.innerHTML = `<div style="margin-top:8px"><strong>Skill breakdown</strong><div style="margin-top:6px">${rows}</div></div>`;
+  }
+  function toTitleCase(s){ return s.replace(/([A-Z])/g,' $1').replace(/^./,str=>str.toUpperCase()); }
+
+  // ===== End skill profile functions =====
 
   function saveSession(){
     const now = new Date().toISOString();
@@ -382,15 +433,15 @@
     const m = computeMetricsFromText(txt, speakingMs);
     const session = {id: now, prompt: promptEl.value, transcript: txt, metrics: m, date: now};
 
-    // compute scorecard and attach
-    const scorecard = computeScoreAndFeedback(m);
-    session.scorecard = scorecard;
+    // compute detailed profile and attach
+    const profile = computeFullProfileAndScore(m, txt);
+    session.scorecard = profile;
 
     const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr.unshift(session); localStorage.setItem('orator_history', JSON.stringify(arr));
     refreshHistory(); saveBtn.disabled=true;
 
-    // show the scorecard for immediate feedback
-    showScorecard(scorecard);
+    // show the profile for immediate feedback
+    showFullProfile(profile);
   }
 
   function refreshHistory(){
@@ -413,8 +464,8 @@
   }
 
   window.replaySession = function(id){
-    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); const s = arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); if(s.scorecard) showScorecard(s.scorecard); }
-  window.deleteSession = function(id){ let arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); }
+    const arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); const s = arr.find(x=>x.id===id); if(!s) return; transcriptEl.textContent = s.transcript; renderMetrics(s.metrics); if(s.scorecard) showFullProfile(s.scorecard); }
+  window.deleteSession = function(id){ let arr = JSON.parse(localStorage.getItem('orator_history')||'[]'); arr = arr.filter(x=>x.id!==id); localStorage.setItem('orator_history', JSON.stringify(arr)); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); if(document.getElementById('profileBreakdown')) document.getElementById('profileBreakdown').remove(); }
 
   function escapeHtmlPreview(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
@@ -441,7 +492,7 @@
   stopBtn.addEventListener('click', ()=>{ stopRecognition(); });
   saveBtn.addEventListener('click', ()=>{ saveSession(); });
   exportBtn.addEventListener('click', ()=>{ exportCSV(); });
-  $('clearHistory').addEventListener('click', ()=>{ if (confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); } });
+  $('clearHistory').addEventListener('click', ()=>{ if (confirm('Clear all saved sessions?')){ localStorage.removeItem('orator_history'); refreshHistory(); if(document.getElementById('scorecard')) document.getElementById('scorecard').remove(); if(document.getElementById('profileBreakdown')) document.getElementById('profileBreakdown').remove(); } });
 
   transcriptEl.addEventListener('input', ()=>{ saveBtn.disabled = transcriptEl.textContent.trim().length===0; computeLiveMetrics(); });
 
